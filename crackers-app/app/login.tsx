@@ -1,7 +1,11 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, StatusBar } from 'react-native';
-import React, { useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+// import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { insertToMstUser, ValidateUser } from '@/db';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
@@ -11,32 +15,65 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
-  const handleLogin = () => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const isDataInserted = await AsyncStorage.getItem('isDataInserted');
+        if (isDataInserted !== 'true') {
+          const response = await axios.get('http://192.168.1.146:3000/api/getuser');
+          const mstuser = response.data.data;
+          console.log('====================================');
+          console.log('mstuser', mstuser);
+          console.log('====================================');
 
+          for (const user of mstuser) {
+            await insertToMstUser(user.UserCode, user.UserID, user.LoginPwd, user.UserName);
+          }
 
-    if(!username){
-        alert('Please enter username');
-        return;
+          await AsyncStorage.setItem('isDataInserted', 'true');
+        }
+      } catch (error) {
+        console.log('====================================');
+        console.log('Error fetching users', error);
+        console.log('====================================');
+      }
+    })();
+  }, []);
+
+  const handleLogin = async () => {
+    if (!username) {
+      alert('Please enter username');
+      return;
     }
-    if(!password){
-        alert('Please enter password');
-        return;
+    if (!password) {
+      alert('Please enter password');
+      return;
     }
     console.log('====================================');
     console.log('username', username, 'password', password);
     console.log('====================================');
-    navigation.navigate('Home');
+    const checkUser = await ValidateUser(username, password);
+    if (!checkUser) {
+      // alert('Invalid credentials');
+      return;
+    } else {
+      navigation.navigate('Home');
+    }
   };
 
   return (
     <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" />
       <Text style={styles.title}>Welcome</Text>
       <TextInput
         style={styles.input}
         placeholder="Username"
         value={username}
         onChangeText={setUsername}
+        autoCapitalize='none'
+        autoComplete='off'
+        autoCorrect={false}
+        autoFocus={true}
       />
       <View style={styles.passwordContainer}>
         <TextInput
@@ -45,6 +82,9 @@ export default function Login() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPassword}
+          autoCapitalize='none'
+          autoComplete='off'
+          autoCorrect={false}
         />
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
           <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="gray" />

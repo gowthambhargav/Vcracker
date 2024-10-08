@@ -68,34 +68,31 @@ export const getMstUser = async () => {
 
 
 export const ValidateUser = async (username: string, password: string) => {
-    await initializeDatabase();
-    try {
-      // Trim and convert username to lowercase
-      const trimmedUsername = username.trim().toLowerCase();
-      const db = await SQLite.openDatabaseAsync('vCracker');
-  
-      // Check if the username exists
-      const user = await db.getFirstAsync(`SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}'`);
-      if (!user) {
-        alert('User not found');
-        return null;
-      }
-  
-      // Check if the password is valid
-      const query = `SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}' AND LoginPwd = '${password}'`;
-      const result = await db.getFirstAsync(query);
-      if (!result) {
-        alert('Invalid password');
-        return null;
-      }
-  
-      return result;
-    } catch (error) {
-      console.log('====================================');
-      console.log('Error in ValidateUser', error);
-      console.log('====================================');
+  await initializeDatabase();
+  try {
+    const trimmedUsername = username.trim().toLowerCase();
+    const db = await SQLite.openDatabaseAsync('vCracker');
+
+    const user = await db.getFirstAsync(`SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}'`);
+    console.log('User found:', user); // Debugging
+    if (!user) {
+      alert('User not found');
+      return null;
     }
-  };
+
+    const query = `SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}' AND LoginPwd = '${password}'`;
+    const result = await db.getFirstAsync(query);
+    console.log('Validation result:', result); // Debugging
+    if (!result) {
+      alert('Invalid password');
+      return null;
+    }
+
+    return result;
+  } catch (error) {
+    console.log('Error in ValidateUser', error);
+  }
+};
 
 
 

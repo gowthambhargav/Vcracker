@@ -21,12 +21,12 @@ export default function Login() {
     (async () => {
       try {
         const isDataInserted = await AsyncStorage.getItem('isDataInserted');
+        console.log('isDataInserted:', isDataInserted); // Debugging
+
         if (isDataInserted !== 'true') {
           const response = await axios.get('http://192.168.1.146:3000/api/getuser');
           const mstuser = response.data.data;
-          console.log('====================================');
-          console.log('mstuser', mstuser);
-          console.log('====================================');
+          console.log('mstuser:', mstuser); // Debugging
   
           for (const user of mstuser) {
             await insertToMstUser(user.UserCode, user.UserID, user.LoginPwd, user.UserName);
@@ -38,6 +38,7 @@ export default function Login() {
         const savedUsername = await AsyncStorage.getItem('username');
         const savedPassword = await AsyncStorage.getItem('password');
         const savedRememberMe = await AsyncStorage.getItem('rememberMe');
+        console.log('Saved credentials:', { savedUsername, savedPassword, savedRememberMe }); // Debugging
 
         if (savedRememberMe === 'true') {
           setUsername(savedUsername || '');
@@ -45,9 +46,7 @@ export default function Login() {
           setRememberMe(true);
         }
       } catch (error) {
-        console.log('====================================');
         console.log('Error fetching users', error);
-        console.log('====================================');
         await AsyncStorage.setItem('isDataInserted', 'false');
       }
     })();
@@ -62,10 +61,12 @@ export default function Login() {
       alert('Please enter password');
       return;
     }
-    console.log('====================================');
-    console.log('username', username, 'password', password);
-    console.log('====================================');
+    console.log('Attempting login with:', { username, password }); // Debugging
     const checkUser = await ValidateUser(username, password);
+    console.log('ValidateUser result:', checkUser); // Debugging
+console.log('====================================');
+console.log(checkUser,"checkUser");
+console.log('====================================');
     if (!checkUser) {
       alert('Invalid credentials');
       return;
@@ -82,7 +83,7 @@ export default function Login() {
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
-          routes: [{ name: 'Home' }],
+          routes: [{ name: 'Home', params: { user: checkUser } }],
         })
       );
     }
@@ -117,15 +118,15 @@ export default function Login() {
           <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="gray" />
         </TouchableOpacity>
       </View>
-<View style={{marginRight:"auto"}}>
-<View style={styles.rememberMeContainer}>
-        <CheckBox
-          value={rememberMe}
-          onValueChange={setRememberMe}
-        />
-        <Text style={styles.rememberMeText}>Remember Me</Text>
+      <View style={{ marginRight: "auto" }}>
+        <View style={styles.rememberMeContainer}>
+          <CheckBox
+            value={rememberMe}
+            onValueChange={setRememberMe}
+          />
+          <Text style={styles.rememberMeText}>Remember Me</Text>
+        </View>
       </View>
-</View>
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>

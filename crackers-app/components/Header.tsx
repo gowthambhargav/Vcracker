@@ -3,12 +3,19 @@ import React, { useState } from 'react';
 import { Menu, Provider, Appbar } from 'react-native-paper';
 import { useNavigation } from 'expo-router';
 
-export default function Header() {
+export default function Header({ user }: { user: any }) {
   const [visible, setVisible] = useState(false);
 
   const openMenu = () => setVisible(true);
   const closeMenu = () => setVisible(false);
   const navigation = useNavigation();
+
+  const userInitials = user?.UserName?.substring(0, 2).toUpperCase() || '';
+
+  console.log('====================================');
+  console.log('user From Header', user?.UserName);
+  console.log('====================================');
+
   return (
     <Provider>
       <Appbar.Header style={styles.header}>
@@ -21,17 +28,20 @@ export default function Header() {
           onDismiss={closeMenu}
           anchor={
             <TouchableOpacity onPress={openMenu} style={styles.profileContainer}>
-              <Text style={styles.profileText}>AB</Text>
+              <Text style={styles.profileText}>{userInitials}</Text>
             </TouchableOpacity>
           }
         >
-          <Menu.Item onPress={() => {
-             /* Handle logout */ 
-             navigation.reset({
-              index: 0,
-              routes: [{ name: "Login" }],
-            });
-             }} title="Logout" />
+          <Menu.Item
+            onPress={() => {
+              /* Handle logout */
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            }}
+            title="Logout"
+          />
         </Menu>
       </Appbar.Header>
     </Provider>

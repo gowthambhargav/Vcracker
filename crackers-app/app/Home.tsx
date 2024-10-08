@@ -1,17 +1,27 @@
 import { View, StyleSheet, BackHandler } from 'react-native';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import Header from '@/components/Header';
 import Main from '@/components/Main';
 import Footer from '@/components/Footer';
 
-export default function Home() {
- 
+export default function Home({ route }) {
+  const [user, setUser] = useState(null);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (route.params?.user) {
+      setUser(route.params.user);
+    }
+  }, [route.params?.user]);
+
+
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Header />
+        <Header user={user} />
       </View>
       <View style={styles.main}>
         <Main />
@@ -35,7 +45,7 @@ const styles = StyleSheet.create({
   },
   main: {
     flex: 1,
-    marginTop:50
+    marginTop: 50,
   },
   footer: {
     flex: 0,

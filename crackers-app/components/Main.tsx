@@ -5,6 +5,7 @@ import { Dropdown, MultiSelect } from 'react-native-element-dropdown';
 import { MaterialIcons } from '@expo/vector-icons';
 import CartItem from './CartItem'; // Import the CartItem component
 import { ScrollView } from 'react-native-gesture-handler';
+import SummaryTable from './SummaryTable';
 
 export default function Main() {
   const [visible1, setVisible1] = useState(null);
@@ -48,6 +49,16 @@ export default function Main() {
   const handleClear = () => {
     setCartItems([]);
   };
+  const calculateTotal = () => {
+    const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
+    const tax = subtotal * 0.1; // Assuming 10% tax
+    const discount = subtotal * 0.05; // Assuming 5% discount
+    const total = subtotal + tax - discount;
+    return { subtotal, tax, discount, total };
+  };
+
+  const { subtotal, tax, discount, total } = calculateTotal();
+
 
   return (
     <Provider>
@@ -109,6 +120,7 @@ export default function Main() {
             <CartItem key={item.id} item={item} onRemove={handleRemoveItem} />
           ))}
        </View>
+       <SummaryTable subtotal={subtotal} tax={tax} discount={discount} total={total} />
         </ScrollView>
         <View style={styles.buttonContainer}>
           <Button mode="contained" buttonColor='#0d106e' textColor='white' onPress={handleSubmit} style={styles.button}>

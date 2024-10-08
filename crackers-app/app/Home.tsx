@@ -4,13 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/Header';
 import Main from '@/components/Main';
 import Footer from '@/components/Footer';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 export default function Home() {
-  const navigation = useNavigation();
-
-
-
+ 
 
   return (
     <SafeAreaView style={styles.container}>
@@ -32,13 +28,14 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'column',
     justifyContent: 'space-between',
-    padding: 10,
+    // padding: 10,
   },
   header: {
     flex: 0,
   },
   main: {
     flex: 1,
+    marginTop:50
   },
   footer: {
     flex: 0,

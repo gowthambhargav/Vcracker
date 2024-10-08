@@ -57,7 +57,7 @@ export const getMstUser = async () => {
     try {
         const query = 'SELECT * FROM MstUser';
         const db = await SQLite.openDatabaseAsync('vCracker');
-        const result = await db.execAsync(query);
+        const result = await db.getAllAsync(query);
         return result;
     } catch (error) {
         console.log('====================================');

@@ -1,22 +1,17 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet, BackHandler } from 'react-native';
 import React, { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/Header';
 import Main from '@/components/Main';
 import Footer from '@/components/Footer';
-import { useNavigation } from 'expo-router';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 export default function Home() {
   const navigation = useNavigation();
-  navigation.reset({
-    index: 0,
-    routes: [{ name: 'Home' }],
-  });
-  useEffect(() => {
 
 
-  }, [])
-  
+
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>

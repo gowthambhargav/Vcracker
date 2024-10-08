@@ -1,11 +1,12 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, StatusBar } from 'react-native';
 import React, { useEffect, useState } from 'react';
-// import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { insertToMstUser, ValidateUser } from '@/db';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from 'expo-router';
+import { CommonActions } from '@react-navigation/native';
+import CheckBox from 'expo-checkbox';
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,6 +14,7 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -25,17 +27,28 @@ export default function Login() {
           console.log('====================================');
           console.log('mstuser', mstuser);
           console.log('====================================');
-
+  
           for (const user of mstuser) {
             await insertToMstUser(user.UserCode, user.UserID, user.LoginPwd, user.UserName);
           }
-
+  
           await AsyncStorage.setItem('isDataInserted', 'true');
+        }
+
+        const savedUsername = await AsyncStorage.getItem('username');
+        const savedPassword = await AsyncStorage.getItem('password');
+        const savedRememberMe = await AsyncStorage.getItem('rememberMe');
+
+        if (savedRememberMe === 'true') {
+          setUsername(savedUsername || '');
+          setPassword(savedPassword || '');
+          setRememberMe(true);
         }
       } catch (error) {
         console.log('====================================');
         console.log('Error fetching users', error);
         console.log('====================================');
+        await AsyncStorage.setItem('isDataInserted', 'false');
       }
     })();
   }, []);
@@ -54,10 +67,24 @@ export default function Login() {
     console.log('====================================');
     const checkUser = await ValidateUser(username, password);
     if (!checkUser) {
-      // alert('Invalid credentials');
+      alert('Invalid credentials');
       return;
     } else {
-      navigation.navigate('Home');
+      if (rememberMe) {
+        await AsyncStorage.setItem('username', username);
+        await AsyncStorage.setItem('password', password);
+        await AsyncStorage.setItem('rememberMe', 'true');
+      } else {
+        await AsyncStorage.removeItem('username');
+        await AsyncStorage.removeItem('password');
+        await AsyncStorage.setItem('rememberMe', 'false');
+      }
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        })
+      );
     }
   };
 
@@ -90,6 +117,15 @@ export default function Login() {
           <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="gray" />
         </TouchableOpacity>
       </View>
+<View style={{marginRight:"auto"}}>
+<View style={styles.rememberMeContainer}>
+        <CheckBox
+          value={rememberMe}
+          onValueChange={setRememberMe}
+        />
+        <Text style={styles.rememberMeText}>Remember Me</Text>
+      </View>
+</View>
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
@@ -139,6 +175,16 @@ const styles = StyleSheet.create({
   eyeIcon: {
     position: 'absolute',
     right: 15,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: height * 0.01,
+  },
+  rememberMeText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
   },
   button: {
     width: '100%',

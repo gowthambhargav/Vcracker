@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, StatusBar } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { insertToMstUser, ValidateUser, insertMstItem } from '@/db';
+import { insertToMstUser, ValidateUser, insertMstItem, insertMstCust, insertMstSalesPerson, truncateMstSalesPerson, insertToMstCompany } from '@/db';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from 'expo-router';
@@ -22,24 +22,24 @@ export default function Login() {
       try {
         const isDataInserted = await AsyncStorage.getItem('isDataInserted');
         console.log('isDataInserted:', isDataInserted); // Debugging
-  
+
         if (isDataInserted !== 'true') {
           const response = await axios.get('http://192.168.1.146:3000/api/getuser');
           const mstuser = response.data.data;
           console.log('mstuser:', mstuser); // Debugging
-  
+
           for (const user of mstuser) {
             await insertToMstUser(user.UserCode, user.UserID, user.LoginPwd, user.UserName);
           }
-  
+
           await AsyncStorage.setItem('isDataInserted', 'true');
         }
-  
+
         const savedUsername = await AsyncStorage.getItem('username');
         const savedPassword = await AsyncStorage.getItem('password');
         const savedRememberMe = await AsyncStorage.getItem('rememberMe');
         console.log('Saved credentials:', { savedUsername, savedPassword, savedRememberMe }); // Debugging
-  
+
         if (savedRememberMe === 'true') {
           setUsername(savedUsername || '');
           setPassword(savedPassword || '');
@@ -49,28 +49,113 @@ export default function Login() {
         console.log('Error fetching users', error);
         await AsyncStorage.setItem('isDataInserted', 'false');
       }
-  
+
       // Fetch and insert items
       try {
         const isItemsInserted = await AsyncStorage.getItem('isItemsInserted');
         console.log('isItemsInserted:', isItemsInserted); // Debugging
-  
+
         if (isItemsInserted !== 'true') {
           const response = await axios.get('http://192.168.1.146:3000/api/items');
           const items = response.data.data;
           console.log('====================================');
           console.log('items:', items.length); // Debugging
           console.log('====================================');
-  
+
           for (const item of items) {
             await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice);
           }
-  
+
           await AsyncStorage.setItem('isItemsInserted', 'true');
         }
       } catch (error) {
         console.log('Error fetching items', error);
         await AsyncStorage.setItem('isItemsInserted', 'false');
+      }
+
+      // Fetch and insert customers
+      try {
+        const isCustomersInserted = await AsyncStorage.getItem('isCustomersInserted');
+        console.log('isCustomersInserted:', isCustomersInserted); // Debugging
+
+        if (isCustomersInserted !== 'true') {
+          const response = await axios.get('http://192.168.1.146:3000/api/mstcust');
+          const customers = response.data.data;
+          console.log('====================================');
+          console.log('customers:', customers.length); // Debugging
+          console.log('====================================');
+
+          for (const customer of customers) {
+            await insertMstCust(customer.CUSTCODE, customer.CustCodeClean, customer.CustName, customer.CUSTID);
+          }
+
+          await AsyncStorage.setItem('isCustomersInserted', 'true');
+        }
+      } catch (error) {
+        console.log('Error fetching customers', error);
+        await AsyncStorage.setItem('isCustomersInserted', 'false');
+      }
+
+      try {
+        
+        const isSalesInserted = await AsyncStorage.getItem('isSalesInserted');
+        console.log('isSalesInserted:', isSalesInserted); // Debugging
+
+        if (isSalesInserted !== 'true') {
+          const response = await axios.get('http://192.168.1.146:3000/api/getsp');
+          const sales = response.data.data;
+          console.log('====================================');
+          console.log('sales:',sales, sales.length); // Debugging
+          console.log('====================================');
+
+            await insertMstSalesPerson(sales[0].SP);
+          
+          await AsyncStorage.setItem('isSalesInserted', 'true');
+        }
+        
+      } catch (error) {
+        await AsyncStorage.setItem('isSalesInserted', 'false');
+        console.log('====================================');
+        console.log('Error in insertMstItem', error);
+        console.log('====================================');
+      }
+
+      try {
+        const isCompanyInserted = await AsyncStorage.getItem('isCompanyInserted');
+        console.log('isCompanyInserted:', isCompanyInserted); // Debugging
+      console.log('====================================');
+      console.log("inserting");
+      console.log('====================================');
+        if (isCompanyInserted !== 'true') {
+          const response = await axios.get('http://192.168.1.146:3000/api/getcompany');
+          const company = response.data.data;
+          console.log('====================================');
+          console.log('company:', company, company.length); // Debugging
+          console.log('====================================');
+          for (const comp of company) {
+            await insertToMstCompany(
+              comp.CompID,         // Corrected property name
+              comp.CompName,       // Corrected property name
+              comp.Address1,       // Corrected property name
+              comp.Address2,       // Corrected property name
+              comp.Address3,       // Corrected property name
+              comp.Custcode,       // Corrected property name
+              comp.EMAIL,          // Corrected property name
+              comp.MOBNO,          // Corrected property name
+              comp.WEB,            // Corrected property name
+              comp.GSTNO,          // Corrected property name
+              comp.CompLoc,        // Corrected property name
+              comp.CINNO,          // Corrected property name
+              comp.TELNO           // Corrected property name
+            );
+          }
+          await AsyncStorage.setItem('isCompanyInserted', 'true');
+        }
+      } catch (error) {
+        await AsyncStorage.setItem('isCompanyInserted', 'false');
+        console.log('====================================');
+        console.log('Error in insertToMstCompany', error);
+        console.log('====================================');
       }
     })();
   }, []);

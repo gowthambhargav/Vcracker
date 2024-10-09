@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Image, ScrollView, TextInput } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { Provider, Button, Badge } from 'react-native-paper';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -7,7 +7,7 @@ import CartItem from './CartItem'; // Import the CartItem component
 import SummaryTable from './SummaryTable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import { getMstItem } from '@/db';
+import { getMstCompany, getMstCust, getMstItem, getMstSalesPerson, GetSyncData, truncateMstItem } from '@/db';
 
 export default function Main() {
   const [visible1, setVisible1] = useState(null);
@@ -18,11 +18,19 @@ export default function Main() {
   const [modalVisible, setModalVisible] = useState(false);
   const [cartModalVisible, setCartModalVisible] = useState(false);
   const [data, setData] = useState([]); // Move useState hook outside of useEffect
-
+const [custData, setCustData] = useState([]); // Move useState hook outside of useEffect
+const [salesPerson, setSalesPerson] = useState([]); // Move useState hook outside of useEffect
   useEffect(() => {
     (async () => {
       const items = await getMstItem();
       setData(items);
+      const cust = await getMstCust();
+      setCustData(cust);
+      const sp = await getMstSalesPerson();
+      console.log('====================================');
+      console.log('sp', sp);
+      console.log('====================================');
+      setSalesPerson(sp);
     })();
   }, []);
 
@@ -44,6 +52,15 @@ export default function Main() {
           setDeviceID(deviceID);
           initializeSerialNo(deviceID);
         }
+        getMstCust().then((res) => {
+          console.log('====================================');
+          console.log('res', res?.length, "mstCust from sqlite in the main.tsx");
+          console.log('====================================');
+        }).catch((err) => {
+          console.log('====================================');
+          console.log('err', err);
+          console.log('====================================');
+        });
       } catch (error) {
         Alert.alert('Error', 'Failed to fetch device ID');
       }
@@ -58,6 +75,26 @@ export default function Main() {
       console.log('err', err);
       console.log('====================================');
     });
+    getMstSalesPerson().then((res) => {
+      console.log('====================================');
+      console.log('res', res?.length, "mstSalesPerson from sqlite in the main.tsx");
+      console.log('====================================');
+    }).catch((err) => {
+      console.log('====================================');
+      console.log('err', err);
+      console.log('====================================');
+    });
+
+    getMstCompany().then((res) => {
+      console.log('====================================');
+      console.log('res', res?.length, "mstCompany from sqlite in the main.tsx");
+      console.log('====================================');
+    }).catch((err) => {
+      console.log('====================================');
+      console.log('err', err);
+      console.log('====================================');
+    });
+
     fetchDeviceID();
   }, []);
 
@@ -195,6 +232,12 @@ export default function Main() {
     return `${day}/${month}/${year}`;
   };
 
+  const HandelSearch = async(item)=>{
+console.log('====================================');
+console.log(item);
+console.log('====================================');
+  }
+
   const { subtotal, tax, discount, total } = calculateTotal();
 
   return (
@@ -206,7 +249,13 @@ export default function Main() {
             <Text style={styles.serialNumberText}>No: {serialNo}</Text>
           </View>
           <Text style={styles.deviceIdText}>Device ID: {deviceID}</Text>
-          <TouchableOpacity style={styles.syncButton}>
+          <TouchableOpacity style={styles.syncButton} onPress={()=>{
+            GetSyncData().then((res) => {}).catch((err) => {
+              console.log('====================================');
+              console.error('err while syncing in main.tsx', err);
+              console.log('====================================');
+            });
+          }}>
             <MaterialIcons name="sync" size={20} color="#fff" />
             <Text style={styles.syncText}>Sync</Text>
           </TouchableOpacity>
@@ -220,22 +269,22 @@ export default function Main() {
         <View style={styles.dropdownContainer}>
           <Dropdown
             style={styles.dropdown}
-            data={data}
-            labelField="ITEMNAME"
-            valueField="ITEMCODEClean"
+            data={custData}
+            labelField="CustCodeClean"
+            valueField="CustName"
             placeholder="Select Customer"
             search
             searchPlaceholder="Search..."
             value={visible1}
-            onChange={(item) => setVisible1(item.ITEMCODEClean)}
+            onChange={(item) => setVisible1(item.CUSTID)}
           />
         </View>
         <View style={styles.dropdownContainer}>
           <Dropdown
             style={styles.dropdown}
-            data={data}
-            labelField="ITEMNAME"
-            valueField="ITEMCODEClean"
+            data={salesPerson}
+            labelField="SP"
+            valueField="SP"
             placeholder="Select Sales Person"
             search
             searchPlaceholder="Search..."
@@ -272,7 +321,7 @@ export default function Main() {
         </ScrollView>
         <View style={styles.buttonContainer}>
           <Button mode="contained" buttonColor="#0d106e" textColor="white" onPress={handleSubmit} style={styles.button}>
-            Submit
+            Save/Print
           </Button>
           <Button mode="outlined" textColor="#0d106e" onPress={handleClear} style={styles.button}>
             Clear
@@ -287,6 +336,13 @@ export default function Main() {
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Items</Text>
+              <View style={{width:"100%",paddingHorizontal:25}}>
+                <TextInput
+                  placeholder="Search items"
+                  style={{ borderColor: '#ccc', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, marginBottom: 10,padding:5 }}
+                  onChangeText={HandelSearch}
+                />
+              </View>
               <ScrollView>
                 <View style={styles.cardContainer}>
                   {data.map((item) => (

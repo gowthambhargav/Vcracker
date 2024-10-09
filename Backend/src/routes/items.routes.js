@@ -11,12 +11,12 @@ router.get("/", async (req, res) => {
                 ITEMNAME,
                 ITEMCODEClean,
                 UNITPRICE AS ItemPrice
-            FROM mstitem`
+            FROM mstitem WHERE showinmob='Y' ORDER BY ITEMNAME`
     );
     if (!items) {
       return res.status(404).json({ message: "No items found" });
     }
-    res.status(200).json({ data: items });
+    res.status(200).json({ length: items.length, data: items });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error });
     console.log("====================================");

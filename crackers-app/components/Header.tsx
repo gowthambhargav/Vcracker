@@ -1,11 +1,12 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Menu, Provider, Appbar } from 'react-native-paper';
 import { useNavigation } from 'expo-router';
+import { getMstCompany } from '@/db';
 
 export default function Header({ user }: { user: any }) {
   const [visible, setVisible] = useState(false);
-
+const [companyName, setCompanyName] = useState('');
   const openMenu = () => setVisible(true);
   const closeMenu = () => setVisible(false);
   const navigation = useNavigation();
@@ -15,6 +16,20 @@ export default function Header({ user }: { user: any }) {
   console.log('====================================');
   console.log('user From Header', user?.UserName);
   console.log('====================================');
+  const getcompanyName = async () => {
+  const data = await getMstCompany();
+  console.log('====================================');
+  console.log('data', data);
+  console.log('====================================');
+  setCompanyName(data[0]?.CompName);
+  }
+useEffect(() => {
+  getcompanyName().then().catch((error) => {
+    console.log('====================================');
+    console.log('error', error);
+    console.log('====================================');
+  });
+}, [])
 
   return (
     <Provider>
@@ -22,7 +37,7 @@ export default function Header({ user }: { user: any }) {
         <View style={styles.logoContainer}>
           <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
         </View>
-        <Text style={styles.companyName}>COMPANY NAME</Text>
+        <Text style={styles.companyName}>{companyName}</Text>
         <Menu
           visible={visible}
           onDismiss={closeMenu}
@@ -79,8 +94,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textTransform: 'uppercase',
     position: 'absolute',
-    left: '50%',
-    transform: [{ translateX: -50 }],
+    left: '20%',
+    // transform: [{ translateX: -50 }],
   },
   profileContainer: {
     backgroundColor: '#fff',

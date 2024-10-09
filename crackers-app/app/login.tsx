@@ -63,10 +63,7 @@ export default function Login() {
     }
     console.log('Attempting login with:', { username, password }); // Debugging
     const checkUser = await ValidateUser(username, password);
-    console.log('ValidateUser result:', checkUser); // Debugging
-console.log('====================================');
-console.log(checkUser,"checkUser");
-console.log('====================================');
+
     if (!checkUser) {
       alert('Invalid credentials');
       return;

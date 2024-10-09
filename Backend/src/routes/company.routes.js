@@ -5,7 +5,9 @@ const router = express.Router();
 
 router.get("/getcompany", async (req, res) => {
   try {
-    const company = await executeQuery("SELECT * FROM MstComp");
+    const company = await executeQuery(
+      "SELECT CompID,CompName,Address1,Address2,Address3,Custcode,EMAIL, MOBNO ,WEB,GSTNO,CompLoc ,                                                  CINNO ,                                                  TELNO   FROM MstComp"
+    );
     if (!company) {
       return res.status(404).json({ message: "No company found" });
     }

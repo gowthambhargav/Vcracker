@@ -20,6 +20,8 @@ async function initializeDatabase() {
           CUSTID INTEGER
         );
       `);
+
+      // Create 
       
 }
 
@@ -74,7 +76,7 @@ export const ValidateUser = async (username: string, password: string) => {
     const db = await SQLite.openDatabaseAsync('vCracker');
 
     const user = await db.getFirstAsync(`SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}'`);
-    console.log('User found:', user); // Debugging
+    // console.log('User found:', user); // Debugging
     if (!user) {
       alert('User not found');
       return null;
@@ -82,7 +84,7 @@ export const ValidateUser = async (username: string, password: string) => {
 
     const query = `SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}' AND LoginPwd = '${password}'`;
     const result = await db.getFirstAsync(query);
-    console.log('Validation result:', result); // Debugging
+    // console.log('Validation result:', result); // Debugging
     if (!result) {
       alert('Invalid password');
       return null;

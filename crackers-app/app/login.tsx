@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, StatusBar } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { insertToMstUser, ValidateUser } from '@/db';
+import { insertToMstUser, ValidateUser, insertMstItem } from '@/db';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from 'expo-router';
@@ -22,7 +22,7 @@ export default function Login() {
       try {
         const isDataInserted = await AsyncStorage.getItem('isDataInserted');
         console.log('isDataInserted:', isDataInserted); // Debugging
-
+  
         if (isDataInserted !== 'true') {
           const response = await axios.get('http://192.168.1.146:3000/api/getuser');
           const mstuser = response.data.data;
@@ -34,12 +34,12 @@ export default function Login() {
   
           await AsyncStorage.setItem('isDataInserted', 'true');
         }
-
+  
         const savedUsername = await AsyncStorage.getItem('username');
         const savedPassword = await AsyncStorage.getItem('password');
         const savedRememberMe = await AsyncStorage.getItem('rememberMe');
         console.log('Saved credentials:', { savedUsername, savedPassword, savedRememberMe }); // Debugging
-
+  
         if (savedRememberMe === 'true') {
           setUsername(savedUsername || '');
           setPassword(savedPassword || '');
@@ -48,6 +48,29 @@ export default function Login() {
       } catch (error) {
         console.log('Error fetching users', error);
         await AsyncStorage.setItem('isDataInserted', 'false');
+      }
+  
+      // Fetch and insert items
+      try {
+        const isItemsInserted = await AsyncStorage.getItem('isItemsInserted');
+        console.log('isItemsInserted:', isItemsInserted); // Debugging
+  
+        if (isItemsInserted !== 'true') {
+          const response = await axios.get('http://192.168.1.146:3000/api/items');
+          const items = response.data.data;
+          console.log('====================================');
+          console.log('items:', items.length); // Debugging
+          console.log('====================================');
+  
+          for (const item of items) {
+            await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice);
+          }
+  
+          await AsyncStorage.setItem('isItemsInserted', 'true');
+        }
+      } catch (error) {
+        console.log('Error fetching items', error);
+        await AsyncStorage.setItem('isItemsInserted', 'false');
       }
     })();
   }, []);

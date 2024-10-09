@@ -1,20 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Image, ScrollView } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import { Provider, Button } from 'react-native-paper';
+import { Provider, Button, Badge } from 'react-native-paper';
 import { Dropdown } from 'react-native-element-dropdown';
 import { MaterialIcons } from '@expo/vector-icons';
 import CartItem from './CartItem'; // Import the CartItem component
-import { ScrollView } from 'react-native-gesture-handler';
 import SummaryTable from './SummaryTable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-
-const data = [
-  { label: 'Option 1', value: '1', price: 10 },
-  { label: 'Option 2', value: '2', price: 20 },
-  { label: 'Option 3', value: '3', price: 30 },
-  // Add more options as needed
-];
+import { getMstItem } from '@/db';
 
 export default function Main() {
   const [visible1, setVisible1] = useState(null);
@@ -24,6 +17,14 @@ export default function Main() {
   const [deviceID, setDeviceID] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [data, setData] = useState([]); // Move useState hook outside of useEffect
+
+  useEffect(() => {
+    (async () => {
+      const items = await getMstItem();
+      setData(items);
+    })();
+  }, []);
 
   useEffect(() => {
     const fetchDeviceID = async () => {
@@ -48,6 +49,15 @@ export default function Main() {
       }
     };
 
+    getMstItem().then((res) => {
+      console.log('====================================');
+      console.log('res', res?.length, "mstItem from sqlite in the main.tsx");
+      console.log('====================================');
+    }).catch((err) => {
+      console.log('====================================');
+      console.log('err', err);
+      console.log('====================================');
+    });
     fetchDeviceID();
   }, []);
 
@@ -147,43 +157,27 @@ export default function Main() {
     setVisible2(null);
   };
 
-  const handleItemSelect = (selectedItems) => {
+  const handleItemSelect = (value) => {
+    const selectedItem = data && data.find((item) => item.ITEMCODEClean === value);
     setCartItems((prevCartItems) => {
-      const newItems = selectedItems.map((value) => {
-        const selectedItem = data.find((item) => item.value === value);
-        const existingItem = prevCartItems.find((item) => item.name === selectedItem.label);
+      const existingItem = prevCartItems.find((item) => item.name === selectedItem.ITEMNAME);
 
-        if (existingItem) {
-          return existingItem;
-        } else {
-          return {
+      if (existingItem) {
+        return prevCartItems.map((item) =>
+          item.name === selectedItem.ITEMNAME ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      } else {
+        return [
+          ...prevCartItems,
+          {
             id: prevCartItems.length + 1 + Math.random(), // Generate a unique id
-            name: selectedItem.label,
-            price: selectedItem.price,
+            name: selectedItem.ITEMNAME,
+            price: selectedItem.ItemPrice,
             quantity: 1,
-          };
-        }
-      });
-
-      // Remove items that are no longer selected
-      const updatedCartItems = prevCartItems.filter((item) =>
-        newItems.some((newItem) => newItem.name === item.name)
-      );
-
-      // Merge newItems with updatedCartItems, avoiding duplicates
-      const mergedItems = [...updatedCartItems];
-      newItems.forEach((newItem) => {
-        const index = mergedItems.findIndex((item) => item.name === newItem.name);
-        if (index !== -1) {
-          mergedItems[index] = newItem;
-        } else {
-          mergedItems.push(newItem);
-        }
-      });
-
-      return mergedItems;
+          },
+        ];
+      }
     });
-    setModalVisible(false);
   };
 
   const calculateTotal = () => {
@@ -216,34 +210,37 @@ export default function Main() {
             <MaterialIcons name="sync" size={20} color="#fff" />
             <Text style={styles.syncText}>Sync</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setCartModalVisible(true)}>
+          <TouchableOpacity onPress={() => setCartModalVisible(true)} style={styles.cartIconContainer}>
             <FontAwesome6 name="cart-shopping" size={24} color="#0d106e" />
+            {cartItems.length > 0 && (
+              <Badge style={styles.badge}>{cartItems.length}</Badge>
+            )}
           </TouchableOpacity>
         </View>
         <View style={styles.dropdownContainer}>
           <Dropdown
             style={styles.dropdown}
             data={data}
-            labelField="label"
-            valueField="value"
+            labelField="ITEMNAME"
+            valueField="ITEMCODEClean"
             placeholder="Select Customer"
             search
             searchPlaceholder="Search..."
             value={visible1}
-            onChange={(item) => setVisible1(item.value)}
+            onChange={(item) => setVisible1(item.ITEMCODEClean)}
           />
         </View>
         <View style={styles.dropdownContainer}>
           <Dropdown
             style={styles.dropdown}
             data={data}
-            labelField="label"
-            valueField="value"
+            labelField="ITEMNAME"
+            valueField="ITEMCODEClean"
             placeholder="Select Sales Person"
             search
             searchPlaceholder="Search..."
             value={visible2}
-            onChange={(item) => setVisible2(item.value)}
+            onChange={(item) => setVisible2(item.ITEMCODEClean)}
           />
         </View>
         <View style={styles.dropdownContainer}>
@@ -290,15 +287,21 @@ export default function Main() {
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Items</Text>
-              {data.map((item) => (
-                <TouchableOpacity
-                  key={item.value}
-                  style={styles.modalItem}
-                  onPress={() => handleItemSelect([item.value])}
-                >
-                  <Text>{item.label}</Text>
-                </TouchableOpacity>
-              ))}
+              <ScrollView>
+                <View style={styles.cardContainer}>
+                  {data.map((item) => (
+                    <TouchableOpacity
+                      key={item.ITEMID}
+                      style={styles.card}
+                      onPress={() => handleItemSelect(item.ITEMCODEClean)}
+                    >
+                      <Image source={require("../assets/images/crackericon.png")} style={styles.cardImage} />
+                      <Text style={styles.cardText}>{item.ITEMNAME}</Text>
+                      <Text style={[styles.cardPrice,{color:"#fff"}]}>₹{item.ItemPrice}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
               <Button onPress={() => setModalVisible(false)}>Close</Button>
             </View>
           </View>
@@ -327,6 +330,25 @@ export default function Main() {
 }
 
 const styles = StyleSheet.create({
+  item1: {
+    alignSelf: 'flex-start', // Align first item to the start
+    marginVertical: 10,
+    padding: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  item2: {
+    alignSelf: 'center', // Center the second item
+    marginVertical: 10,
+    padding: 20,
+    backgroundColor: '#d0d0d0',
+  },
+  item3: {
+    alignSelf: 'flex-end', // Align third item to the end
+    marginVertical: 10,
+    padding: 20,
+    backgroundColor: '#b0b0b0',
+  },
+
   container: {
     flex: 1,
     alignItems: 'center',
@@ -373,6 +395,14 @@ const styles = StyleSheet.create({
   syncText: {
     color: '#fff',
     marginLeft: 5,
+  },
+  cartIconContainer: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
   },
   dropdownContainer: {
     marginVertical: 5,
@@ -423,7 +453,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: 'white',
-    padding: 20,
+    // padding: 20,
     borderRadius: 10,
     alignItems: 'center',
   },
@@ -438,5 +468,39 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
     width: '100%',
     alignItems: 'center',
+  },
+  cardContainer: {
+    flexDirection: 'row',
+    width:"100%",
+    flexWrap: 'wrap',
+  },
+  card: {
+    backgroundColor: '#0d106e',
+    borderRadius: 10,
+    padding: 2,
+    margin: 3,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5.5,
+    elevation: 5,
+    width: 100, // Adjust the width as needed
+  },
+  cardImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+  },
+  cardText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginTop: 10,
+    color: '#fff',
+  },
+  cardPrice: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
   },
 });

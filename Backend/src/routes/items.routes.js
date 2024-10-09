@@ -9,16 +9,14 @@ router.get("/", async (req, res) => {
       `SELECT 
                 ITEMID,
                 ITEMNAME,
-                ITEMDesc,
                 ITEMCODEClean,
-                UNITPRICE AS ItemPrice,
-                MINQTY AS ItemQty
+                UNITPRICE AS ItemPrice
             FROM mstitem`
     );
     if (!items) {
       return res.status(404).json({ message: "No items found" });
     }
-    res.status(200).json({ length: items.length, data: items });
+    res.status(200).json({ data: items });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error });
     console.log("====================================");

@@ -17,8 +17,11 @@ app.get("/", (req, res) => {
 
 // import router
 import userRouter from "./routes/user.routes.js";
+import itemRouter from "./routes/items.routes.js";
+import companyRouter from "./routes/company.routes.js";
 // use router
-app.use("/api", userRouter);
+app.use("/api", userRouter, companyRouter);
+app.use("/api/items", itemRouter);
 
 app.listen(3000, () => {
   console.log("Server is running on", "http://localhost:3000");

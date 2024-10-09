@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card } from 'react-native-paper';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-const CartItem = ({ item, onRemove }) => {
-  const [quantity, setQuantity] = useState(1);
+const CartItem = ({ item, onRemove, onQuantityChange }) => {
+  const [quantity, setQuantity] = useState(item.quantity);
+
+  useEffect(() => {
+    onQuantityChange(item.id, quantity);
+  }, [quantity]);
 
   const incrementQuantity = () => {
     setQuantity(quantity + 1);

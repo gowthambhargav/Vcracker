@@ -17,6 +17,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     backgroundColor: '#0d106e', // Background color to match the header
+
   },
   text: {
     color: '#fff',

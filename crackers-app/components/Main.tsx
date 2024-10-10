@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Image, ScrollView, TextInput } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Provider, Button, Badge } from 'react-native-paper';
 import { Dropdown } from 'react-native-element-dropdown';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -18,12 +18,18 @@ export default function Main() {
   const [modalVisible, setModalVisible] = useState(false);
   const [cartModalVisible, setCartModalVisible] = useState(false);
   const [data, setData] = useState([]); // Move useState hook outside of useEffect
-const [custData, setCustData] = useState([]); // Move useState hook outside of useEffect
-const [salesPerson, setSalesPerson] = useState([]); // Move useState hook outside of useEffect
+  const [custData, setCustData] = useState([]); // Move useState hook outside of useEffect
+  const [salesPerson, setSalesPerson] = useState([]); // Move useState hook outside of useEffect
+  const [searchText, setSearchText] = useState('');
+  const [filteredData, setFilteredData] = useState(data);
+  const [mstItemNo, setMstItemNo] = useState();
+
   useEffect(() => {
     (async () => {
       const items = await getMstItem();
+      setMstItemNo(items.length);
       setData(items);
+      setFilteredData(items); // Initialize filteredData with all items
       const cust = await getMstCust();
       setCustData(cust);
       const sp = await getMstSalesPerson();
@@ -195,34 +201,32 @@ const [salesPerson, setSalesPerson] = useState([]); // Move useState hook outsid
   };
 
   const handleItemSelect = (value) => {
-    const selectedItem = data && data.find((item) => item.ITEMCODEClean === value);
+    const selectedItem = data?.find((item) => item.ITEMCODEClean === value);
+    if (!selectedItem) return;
+  
     setCartItems((prevCartItems) => {
-      const existingItem = prevCartItems.find((item) => item.name === selectedItem.ITEMNAME);
-
+      const itemMap = new Map(prevCartItems.map(item => [item.name, item]));
+      const existingItem = itemMap.get(selectedItem.ITEMNAME);
+  
       if (existingItem) {
-        return prevCartItems.map((item) =>
-          item.name === selectedItem.ITEMNAME ? { ...item, quantity: item.quantity + 1 } : item
-        );
+        existingItem.quantity += 1;
+        return [...itemMap.values()];
       } else {
-        return [
-          ...prevCartItems,
-          {
-            id: prevCartItems.length + 1 + Math.random(), // Generate a unique id
-            name: selectedItem.ITEMNAME,
-            price: selectedItem.ItemPrice,
-            quantity: 1,
-          },
-        ];
+        const newItem = {
+          id: prevCartItems.length + 1 + Math.random(), // Generate a unique id
+          name: selectedItem.ITEMNAME,
+          price: selectedItem.ItemPrice,
+          quantity: 1,
+        };
+        itemMap.set(newItem.name, newItem);
+        return [...itemMap.values()];
       }
     });
   };
 
   const calculateTotal = () => {
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const tax = subtotal * 0.1; // Assuming 10% tax
-    const discount = subtotal * 0.05; // Assuming 5% discount
-    const total = subtotal + tax - discount;
-    return { subtotal, tax, discount, total };
+    return { subtotal, total: subtotal };
   };
 
   const formatDate = (date) => {
@@ -232,13 +236,34 @@ const [salesPerson, setSalesPerson] = useState([]); // Move useState hook outsid
     return `${day}/${month}/${year}`;
   };
 
-  const HandelSearch = async(item)=>{
-console.log('====================================');
-console.log(item);
-console.log('====================================');
-  }
 
-  const { subtotal, tax, discount, total } = calculateTotal();
+
+  const HandelSearch = (text) => {
+    setSearchText(text);
+    const filtered = data.filter(
+      (item) =>
+        item.ITEMNAME.toLowerCase().includes(text.toLowerCase()) ||
+        item.ITEMCODEClean.toLowerCase().includes(text.toLowerCase())
+    );
+    setFilteredData(filtered);
+  };
+  const memoizedFilteredData = useMemo(() => filteredData, [filteredData]);
+
+  // const CartModal = ({ cartModalVisible, setCartModalVisible, cartItems, handleRemoveItem, handleQuantityChange }) => {
+  //   const total = useMemo(() => {
+  //     return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  //   }, [cartItems]);
+  
+    const memoizedCartItems = useMemo(() => {
+      return cartItems.map((item) => (
+        <CartItem key={item.id} item={item} onRemove={handleRemoveItem} onQuantityChange={handleQuantityChange} />
+      ));
+    }, [cartItems, handleRemoveItem, handleQuantityChange]);
+  
+
+
+
+  const { subtotal, total } = calculateTotal();
 
   return (
     <Provider>
@@ -328,40 +353,51 @@ console.log('====================================');
           </Button>
         </View>
         <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Items</Text>
-              <View style={{width:"100%",paddingHorizontal:25}}>
-                <TextInput
-                  placeholder="Search items"
-                  style={{ borderColor: '#ccc', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, marginBottom: 10,padding:5 }}
-                  onChangeText={HandelSearch}
-                />
-              </View>
-              <ScrollView>
-                <View style={styles.cardContainer}>
-                  {data.map((item) => (
-                    <TouchableOpacity
-                      key={item.ITEMID}
-                      style={styles.card}
-                      onPress={() => handleItemSelect(item.ITEMCODEClean)}
-                    >
-                      <Image source={require("../assets/images/crackericon.png")} style={styles.cardImage} />
-                      <Text style={styles.cardText}>{item.ITEMNAME}</Text>
-                      <Text style={[styles.cardPrice,{color:"#fff"}]}>₹{item.ItemPrice}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-              <Button onPress={() => setModalVisible(false)}>Close</Button>
-            </View>
-          </View>
-        </Modal>
+  animationType="slide"
+  transparent={true}
+  visible={modalVisible}
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Select Items({mstItemNo})</Text>
+      <View style={{ width: "100%", paddingHorizontal: 25, flexDirection: 'row', alignItems: 'center' }}>
+        <TextInput
+          placeholder="Search items"
+          style={{ flex: 1, borderColor: '#ccc', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, marginBottom: 10, padding: 5 }}
+          onChangeText={HandelSearch}
+          value={searchText}
+        />
+        <TouchableOpacity onPress={() => setCartModalVisible(true)} style={{ marginLeft: 10 }}>
+          <FontAwesome6 name="cart-shopping" size={24} color="#0d106e" />
+          {cartItems.length > 0 && (
+            <Badge style={styles.badge}>{cartItems.length}</Badge>
+          )}
+        </TouchableOpacity>
+      </View>
+      <ScrollView>
+        <View style={styles.cardContainer}>
+          {memoizedFilteredData.map((item) => (
+            <TouchableOpacity
+              key={item.ITEMID}
+              style={styles.card}
+              onPress={() => handleItemSelect(item.ITEMCODEClean)}
+            >
+              <Image source={require("../assets/images/crackericon.png")} style={styles.cardImage} />
+              <Text style={styles.cardText}>{item.ITEMNAME}</Text>
+              <Text style={[styles.cardPrice, { color: "#fff" }]}>₹{item.ItemPrice}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+<View style={{marginBottom:20}}>
+<TouchableOpacity onPress={() => setModalVisible(false)} style={{ backgroundColor: '#0d106e', paddingVertical:5,paddingHorizontal:20, borderRadius: 5, marginTop: 10 }}>
+    <Text style={{ color: '#fff' }}>Close</Text>
+  </TouchableOpacity>
+</View>
+    </View>
+  </View>
+</Modal>
         <Modal
           animationType="slide"
           transparent={true}
@@ -376,7 +412,12 @@ console.log('====================================');
                   <CartItem key={item.id} item={item} onRemove={handleRemoveItem} onQuantityChange={handleQuantityChange} />
                 ))}
               </ScrollView>
-              <Button onPress={() => setCartModalVisible(false)}>Close</Button>
+              <Text style={styles.modalTitle}>Total: ₹{total.toFixed(2)}</Text>
+            <View style={{marginBottom:20}}>
+<TouchableOpacity onPress={() => setCartModalVisible(false)} style={{ backgroundColor: '#0d106e', paddingVertical:5,paddingHorizontal:20, borderRadius: 5, marginTop: 10 }}>
+    <Text style={{ color: '#fff' }}>Close</Text>
+  </TouchableOpacity>
+</View>
             </View>
           </View>
         </Modal>

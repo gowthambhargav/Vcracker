@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Designed by</Text>
-      <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
+      <Image source={require('@/assets/images/sspllogo.png')} style={styles.logo} />
     </View>
   );
 }
@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
+    // padding: 10,
     backgroundColor: '#0d106e', // Background color to match the header
 
   },
@@ -25,7 +25,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   logo: {
-    width: 30,
-    height: 30,
+    width: 80,
+    height: 50,
+    resizeMode: 'contain',
   },
 });

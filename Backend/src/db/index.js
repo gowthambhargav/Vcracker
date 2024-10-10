@@ -73,3 +73,15 @@ export function executeQuery(query) {
     connection.connect();
   });
 }
+
+export function beginTransaction() {
+  return executeQuery("BEGIN TRANSACTION");
+}
+
+export function commitTransaction() {
+  return executeQuery("COMMIT");
+}
+
+export function rollbackTransaction() {
+  return executeQuery("ROLLBACK");
+}

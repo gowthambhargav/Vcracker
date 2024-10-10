@@ -97,6 +97,21 @@ async function initializeDatabase() {
       FOREIGN KEY (ITEMID) REFERENCES MstItem (ITEMID)
     );
   `);
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS CustomerSalesCart (
+      CartID INTEGER PRIMARY KEY AUTOINCREMENT,
+      CUSTID INTEGER NOT NULL,
+      SalesPerson TEXT NOT NULL,
+      CartItems TEXT NOT NULL,
+      CartTotal NUMERIC(19, 2) NOT NULL,
+      CartDate DATETIME NOT NULL,
+      CartMonth INTEGER NOT NULL,
+      CartYear INTEGER NOT NULL,
+      SeraialNo INTEGER NOT NULL
+
+    );
+  `);
+
 }
 
 export const insertToMstUser = async (userCode: string, userId: number, loginPwd: string, userName: string) => {
@@ -145,26 +160,39 @@ export const truncateMstUser = async ()=> {
 }
 
 export const ValidateUser = async (username: string, password: string) => {
+  console.log('Initializing database...');
   await initializeDatabase();
   try {
+    console.log('Trimming and converting username to lowercase...');
     const trimmedUsername = username.trim().toLowerCase();
+    console.log('Trimmed username:', trimmedUsername);
+
+    console.log('Opening database...');
     const db = await SQLite.openDatabaseAsync('vCracker');
 
-    const user = await db.getFirstAsync(`SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}'`);
-    // console.log('User found:', user); // Debugging
+    console.log('Querying for user...');
+    const user = await db.getFirstAsync(
+      `SELECT * FROM MstUser WHERE LOWER(UserCode) = ?`,
+      [trimmedUsername]
+    );
+    console.log('User found:', user);
+
     if (!user) {
       alert('User not found');
       return null;
     }
 
-    const query = `SELECT * FROM MstUser WHERE LOWER(UserCode) = '${trimmedUsername}' AND LoginPwd = '${password}'`;
-    const result = await db.getFirstAsync(query);
-    // console.log('Validation result:', result); // Debugging
+    console.log('Validating password...');
+    const query = `SELECT * FROM MstUser WHERE LOWER(UserCode) = ? AND LoginPwd = ?`;
+    const result = await db.getFirstAsync(query, [trimmedUsername, password]);
+    console.log('Validation result:', result);
+
     if (!result) {
       alert('Invalid password');
       return null;
     }
 
+    console.log('Returning result...');
     return result;
   } catch (error) {
     console.log('Error in ValidateUser', error);
@@ -290,8 +318,6 @@ export const getMstCust = async () => {
     }
 }
 
-
-
 export const insertMstItem = async (itemId: number, itemName: string, itemCodeClean: string, itemPrice: number,uomid:number) => {
   await initializeDatabase();
   try {
@@ -376,9 +402,26 @@ export const getMstSalesPerson = async () => {
     }
 }
 
+export const syncCustomerSalesCart = async () => {
+  try {
+    console.log('Starting syncCustomerSalesCart...');
+    const db = await SQLite.openDatabaseAsync('vCracker');
+    const query = 'SELECT * FROM CustomerSalesCart';
+    console.log(`Executing query: ${query}`);
+    const result = await db.getAllAsync(query);
+    console.log('Query result:', result);
+
+    const response = await axios.post('http://192.168.1.146:3000/api/items/sync', result);
+    console.log('Data synced successfully with server. Response:', response.data);
+  } catch (error) {
+    console.log('====================================');
+    console.log('Error in syncCustomerSalesCart', error);
+    console.log('====================================');
+  }
+};
+
 export const GetSyncData = async () => {
   console.log('Starting data synchronization');
-
   try {
     await Promise.all([
       truncateMstCompany(),
@@ -405,14 +448,14 @@ export const GetSyncData = async () => {
     const mstuser = usersResponse.data.data;
 
     console.log('mstuser:', mstuser); // Debugging
-console.log('====================================');
-console.log('items:', items.length);
-console.log('====================================');
+    console.log('====================================');
+    console.log('items:', items.length);
+    console.log('====================================');
+
     // Insert items
     await Promise.all(items.map(async (item) => {
       try {
         await initializeDatabase();
-
         await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice, item.uomid);
       } catch (error) {
         console.log('Error inserting item:', item, error);
@@ -480,6 +523,7 @@ console.log('====================================');
     console.log('Error in GetSyncData', error);
     console.log('====================================');
   }
+
   console.log('Data synchronization completed');
 };
 
@@ -513,72 +557,44 @@ export const getitembyid = async (itemid: number) => {
 
 
 
-export const insertToTrnHdrINV = async (data: any) => {
+export const insertToCustomerSalesCart = async (custId: number, salesPerson: string, cartItems: string, cartTotal: number, cartDate: string, cartMonth: number, cartYear: number, serialNo: number) => {
+  console.log(`Starting insertToCustomerSalesCart with custId: ${custId}, salesPerson: ${salesPerson}, cartItems: ${cartItems}, cartTotal: ${cartTotal}, cartDate: ${cartDate}, cartMonth: ${cartMonth}, cartYear: ${cartYear}, serialNo: ${serialNo}`);
   try {
+    if (custId == null) {
+      throw new Error('custId is null or undefined');
+    }
+
+    console.log('Opening database...');
     const db = await SQLite.openDatabaseAsync('vCracker');
-    await db.execAsync(`
-      INSERT INTO TrnHdrINV (INVNO, PrintINVNO, INVDate, INVDateYear, INVDateMonth, CUSTID, PartyName, AddedBy, AddedOn, GRSAMT, INVTIME, USERNAME, AMTINWORDS, INVVALUE) 
-      VALUES ('${data.INVNO}', '${data.PrintINVNO}', '${data.INVDate}', ${data.INVDateYear}, ${data.INVDateMonth}, ${data.CUSTID}, '${data.PartyName}', '${data.AddedBy}', '${data.AddedOn}', ${data.GRSAMT}, '${data.INVTIME}', '${data.USERNAME}', '${data.AMTINWORDS}', ${data.INVVALUE});
-    `);
+
+    console.log('Preparing SQL query...');
+    const query = `
+    INSERT INTO CustomerSalesCart (CUSTID, SalesPerson, CartItems, CartTotal, CartDate, CartMonth, CartYear, SeraialNo) 
+    VALUES (${custId}, '${salesPerson}', '${cartItems}', ${cartTotal}, '${cartDate}', ${cartMonth}, ${cartYear}, ${serialNo});
+  `;
+  console.log(`SQL query: ${query}`);
+  
+  console.log('Executing SQL query...');
+  await db.execAsync(query);
+
+    console.log('Insert successful.');
   } catch (error) {
     console.log('====================================');
-    console.log('Error in insertToTrnHdrINV', error);
+    console.log('Error in insertToCustomerSalesCart', error);
     console.log('====================================');
   }
-}
-
-export const getTrnHdrINV = async () => {
-    try {
-        const query = 'SELECT * FROM TrnHdrINV';
-        const db = await SQLite.openDatabaseAsync('vCracker');
-        const result = await db.getAllAsync(query);
-        return result;
-    } catch (error) {
-        console.log('====================================');
-        console.log('Error in getTrnHdrINV', error);
-        console.log('====================================');
-    }
-}
-
-export const truncateTrnhdrINV = async ()=>{
-    try {
-        const db = await SQLite.openDatabaseAsync('vCracker');
-        await db.execAsync(`
-            DELETE FROM TrnHdrINV;
-        `);
-    } catch (error) {
-        console.log('====================================');
-        console.log('Error in truncateTrnhdrINV', error);
-        console.log('====================================');
-    }
-}
+};
 
 
-export const insertToTrnDtlINV = async (data: any) => {
+export const getCustomerSalesCart = async () => {
   try {
+    const query = 'SELECT * FROM CustomerSalesCart';
     const db = await SQLite.openDatabaseAsync('vCracker');
-    await db.execAsync(`
-      INSERT INTO TrnDtlINV (INVID, INVDtlID, SlNo, ITEMID, UOMID, ItemSlNO, ShortClosed, ShortClosedBy, ShortClosedDT, ShortClosedQty, StkQty, INVQty, INVRate, INVAmt, ShortClosedRmks) 
-      VALUES (${data.INVID}, ${data.INVDtlID}, ${data.SlNo}, ${data.ITEMID}, ${data.UOMID}, ${data.ItemSlNO}, '${data.ShortClosed}', ${data.ShortClosedBy}, '${data.ShortClosedDT}', ${data.ShortClosedQty}, ${data.StkQty}, ${data.INVQty}, ${data.INVRate}, ${data.INVAmt}, '${data.ShortClosedRmks}');
-    `);
+    const result = await db.getAllAsync(query);
+    return result;
   } catch (error) {
     console.log('====================================');
-    console.log('Error in insertToTrnDtlINV', error);
+    console.log('Error in getCustomerSalesCart', error);
     console.log('====================================');
   }
-}
-
-
-
-export const truncateTrnDtlINV = async ()=>{
-    try {
-        const db = await SQLite.openDatabaseAsync('vCracker');
-        await db.execAsync(`
-            DELETE FROM TrnDtlINV;
-        `);
-    } catch (error) {
-        console.log('====================================');
-        console.log('Error in truncateTrnDtlINV', error);
-        console.log('====================================');
-    }
 }

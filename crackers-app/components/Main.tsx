@@ -4,14 +4,27 @@ import { Provider, Button, Badge } from 'react-native-paper';
 import { MaterialIcons, FontAwesome6 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Dropdown } from 'react-native-element-dropdown'; // Ensure you are using the correct dropdown component
-import { getMstItem, getMstCust, getMstSalesPerson, GetSyncData } from '@/db'; // Adjust the imports as necessary
+import { getMstItem, getMstCust, getMstSalesPerson, GetSyncData, insertToCustomerSalesCart, getCustomerSalesCart, syncCustomerSalesCart } from '@/db'; // Adjust the imports as necessary
 import CartItem from './CartItem';
+import { ToWords } from 'to-words';
 import SummaryTable from './SummaryTable';
 // import styles from './styles'; // Ensure you have the correct styles imported
 
+const toWords = new ToWords({
+  localeCode: 'en-IN',
+  converterOptions: {
+    currency: true,
+    ignoreDecimal: false,
+    ignoreZeroCurrency: false,
+  },
+});
+
 export default function Main() {
-  const [visible1, setVisible1] = useState(null);
-  const [visible2, setVisible2] = useState(null);
+  // set be default value of visible1 and visible2 to first item in the dropdown
+  const [visible1, setVisible1] = useState(2)
+  const [visible2, setVisible2] = useState(
+
+  );
   const [cartItems, setCartItems] = useState([]);
   const [serialNo, setSerialNo] = useState('');
   const [deviceID, setDeviceID] = useState('');
@@ -134,23 +147,41 @@ export default function Main() {
     setCartItems(cartItems.map((item) => (item.id === id ? { ...item, quantity } : item)));
   };
 
-  const handleSubmit = () => {
+
+
+
+  const handleSubmit = async () => {
     if (cartItems.length === 0) {
       Alert.alert('Cart is empty', 'Please add items to the cart before submitting.');
       return;
     }
+
     setCartItems([]);
     updateSerialNo();
     console.log('====================================');
-    console.log(visible1, visible2);
+    console.log(visible1, visible2, total);
     console.log('====================================');
-    console.log('Submit:', cartItems.map(item => ({
+    const cart =  cartItems.map(item => ({
       ITEMID: item.ITEMID,
       ITEMNAME: item.name,
       ITEMCODEClean: item.ITEMCODEClean,
-      ItemPrice: item.price,
+      ItemPrice: toWords.convert(item.price),
       uomid: item.uomid,
-    })));
+      quantity: item.quantity,
+    }))
+    const strCart = JSON.stringify(cart);
+    console.log('Submit:',);
+const date = new Date().toDateString();
+const mounth = new Date().getMonth() + 1;
+const year = new Date().getFullYear();
+   try {
+  await  insertToCustomerSalesCart(visible1,visible2 || "Admin",strCart,total,date,mounth,year,serialNo)
+   } catch (error) {
+    console.log('====================================');
+    console.log('error while inserting to customer sales cart',error);
+    console.log('====================================');
+   }
+   await getCustomerSalesCart();
   };
 
   const handleClear = () => {
@@ -186,7 +217,14 @@ export default function Main() {
 
   const calculateTotal = () => {
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    return { subtotal, total: subtotal };
+    const sgst = subtotal * 0.09; // 9% SGST
+    const cgst = subtotal * 0.09; // 9% CGST
+    const discount = subtotal * 0.18; // 18% discount
+    const total = subtotal - discount + sgst + cgst;
+    console.log('====================================');
+    console.log(sgst, cgst,subtotal ,total);
+    console.log('====================================');
+    return { subtotal, sgst, cgst, total };
   };
 
   const formatDate = (date) => {
@@ -226,6 +264,7 @@ export default function Main() {
           </View>
           <Text style={styles.deviceIdText}>Device ID: {deviceID}</Text>
           <TouchableOpacity style={styles.syncButton} onPress={() => {
+            syncCustomerSalesCart().then((res) => {}).catch((err) => {});
             GetSyncData().then((res) => {}).catch((err) => {
               console.error('err while syncing in main.tsx', err);
             });
@@ -247,7 +286,6 @@ export default function Main() {
             labelField="CustCodeClean"
             valueField="CustName"
             placeholder="Select Customer"
-            search
             searchPlaceholder="Search..."
             value={visible1}
             onChange={(item) => setVisible1(item.CUSTID)}

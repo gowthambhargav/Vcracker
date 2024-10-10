@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, StatusBar } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { insertToMstUser, ValidateUser, insertMstItem, insertMstCust, insertMstSalesPerson, truncateMstSalesPerson, insertToMstCompany } from '@/db';
+import { insertToMstUser, ValidateUser, insertMstItem, insertMstCust, insertMstSalesPerson, truncateMstSalesPerson, insertToMstCompany, getMstUser } from '@/db';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from 'expo-router';
@@ -63,7 +63,7 @@ export default function Login() {
           console.log('====================================');
 
           for (const item of items) {
-            await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice,item.uomid);
+            await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice, item.uomid);
           }
 
           await AsyncStorage.setItem('isItemsInserted', 'true');
@@ -97,7 +97,6 @@ export default function Login() {
       }
 
       try {
-        
         const isSalesInserted = await AsyncStorage.getItem('isSalesInserted');
         console.log('isSalesInserted:', isSalesInserted); // Debugging
 
@@ -105,14 +104,13 @@ export default function Login() {
           const response = await axios.get('http://192.168.1.146:3000/api/getsp');
           const sales = response.data.data;
           console.log('====================================');
-          console.log('sales:',sales, sales.length); // Debugging
+          console.log('sales:', sales, sales.length); // Debugging
           console.log('====================================');
 
-            await insertMstSalesPerson(sales[0].SP);
-          
+          await insertMstSalesPerson(sales[0].SP);
+
           await AsyncStorage.setItem('isSalesInserted', 'true');
         }
-        
       } catch (error) {
         await AsyncStorage.setItem('isSalesInserted', 'false');
         console.log('====================================');
@@ -123,9 +121,9 @@ export default function Login() {
       try {
         const isCompanyInserted = await AsyncStorage.getItem('isCompanyInserted');
         console.log('isCompanyInserted:', isCompanyInserted); // Debugging
-      console.log('====================================');
-      console.log("inserting");
-      console.log('====================================');
+        console.log('====================================');
+        console.log("inserting");
+        console.log('====================================');
         if (isCompanyInserted !== 'true') {
           const response = await axios.get('http://192.168.1.146:3000/api/getcompany');
           const company = response.data.data;
@@ -169,9 +167,16 @@ export default function Login() {
       alert('Please enter password');
       return;
     }
+    const getUsers = await getMstUser();
+    console.log('====================================');
+    console.log(getUsers);
+    console.log('====================================');
     console.log('Attempting login with:', { username, password }); // Debugging
     const checkUser = await ValidateUser(username, password);
 
+console.log('====================================');
+console.log('checkUser:', checkUser); // Debugging
+console.log('====================================');
     if (!checkUser) {
       alert('Invalid credentials');
       return;

@@ -10,7 +10,8 @@ router.get("/", async (req, res) => {
                 ITEMID,
                 ITEMNAME,
                 ITEMCODEClean,
-                UNITPRICE AS ItemPrice
+                UNITPRICE AS ItemPrice,
+                uomid
             FROM mstitem WHERE showinmob='Y' ORDER BY ITEMNAME`
     );
     if (!items) {

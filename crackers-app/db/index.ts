@@ -2,59 +2,101 @@ import axios from 'axios';
 import * as SQLite from 'expo-sqlite';
 
 async function initializeDatabase() {
-    const db = await SQLite.openDatabaseAsync('vCracker');
+  const db = await SQLite.openDatabaseAsync('vCracker');
+
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS MstUser (
-      UserCode TEXT NOT NULL,
-      UserID INTEGER ,
-      LoginPwd TEXT NOT NULL,
-      UserName TEXT NOT NULL
+      UserCode TEXT,
+      UserID INTEGER,
+      LoginPwd TEXT ,
+      UserName TEXT
     );
   `);
 
-    // Create MstCust table
-    await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS MstCust (
-          CUSTCODE TEXT ,
-          CustCodeClean TEXT,
-          CustName TEXT ,
-          CUSTID INTEGER
-        );
-      `);
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS MstCust (
+      CUSTCODE TEXT,
+      CustCodeClean TEXT,
+      CustName TEXT,
+      CUSTID INTEGER
+    );
+  `);
 
-      // Create MstCompany table
-      await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS MstCompany (
-          CompID INTEGER NOT NULL,
-          CompName TEXT NOT NULL,
-          Address1 TEXT,
-          Address2 TEXT,
-          Address3 TEXT,
-          Custcode TEXT,
-          EMAIL TEXT,
-          MOBNO TEXT,
-          WEB TEXT,
-          GSTNO TEXT,
-          CompLoc TEXT,
-          CINNO TEXT,
-          TELNO TEXT
-        );
-      `);
-      // create salesPerson table
-      await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS MstSalesPerson (
-          SP TEXT
-        );
-        `);
-      // create MstItem table
-      await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS MstItem (
-          ITEMID INTEGER,
-          ITEMNAME TEXT,
-          ITEMCODEClean TEXT,
-          ItemPrice INTEGER
-        );
-        `);
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS MstCompany (
+      CompID INTEGER NOT NULL,
+      CompName TEXT NOT NULL,
+      Address1 TEXT,
+      Address2 TEXT,
+      Address3 TEXT,
+      Custcode TEXT,
+      EMAIL TEXT,
+      MOBNO TEXT,
+      WEB TEXT,
+      GSTNO TEXT,
+      CompLoc TEXT,
+      CINNO TEXT,
+      TELNO TEXT
+    );
+  `);
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS MstSalesPerson (
+      SP TEXT
+    );
+  `);
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS MstItem (
+      ITEMID INTEGER,
+      ITEMNAME TEXT,
+      ITEMCODEClean TEXT,
+      ItemPrice INTEGER,
+      uomid INTEGER
+    );
+  `);
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS TrnHdrINV (
+      INVID INTEGER PRIMARY KEY AUTOINCREMENT,
+      INVNO VARCHAR(15) NOT NULL,
+      PrintINVNO VARCHAR(50) NOT NULL,
+      INVDate DATETIME NOT NULL,
+      INVDateYear INTEGER,
+      INVDateMonth INTEGER,
+      CUSTID INTEGER NOT NULL,
+      PartyName VARCHAR(150) NOT NULL,
+      AddedBy VARCHAR(50) NOT NULL,
+      AddedOn DATETIME NOT NULL,
+      GRSAMT NUMERIC(19, 2) NOT NULL,
+      INVTIME VARCHAR(15) NOT NULL,
+      USERNAME VARCHAR(75) NOT NULL, 
+      AMTINWORDS VARCHAR(250) NOT NULL,
+      INVVALUE NUMERIC(19, 2) NOT NULL
+    );
+  `);
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS TrnDtlINV (
+      INVID INTEGER NOT NULL,
+      INVDtlID INTEGER NOT NULL,
+      SlNo INTEGER NOT NULL,
+      ITEMID INTEGER NOT NULL,
+      UOMID INTEGER NOT NULL,
+      ItemSlNO INTEGER NOT NULL,
+      ShortClosed CHAR(1) NOT NULL,
+      ShortClosedBy INTEGER NOT NULL,
+      ShortClosedDT DATETIME,
+      ShortClosedQty NUMERIC(19, 2),
+      StkQty NUMERIC(19, 2),
+      INVQty NUMERIC(18, 2) NOT NULL,
+      INVRate NUMERIC(18, 2) NOT NULL,
+      INVAmt NUMERIC(18, 2) NOT NULL,
+      ShortClosedRmks VARCHAR(100),
+      FOREIGN KEY (INVID) REFERENCES TrnHdrINV (INVID),
+      FOREIGN KEY (ITEMID) REFERENCES MstItem (ITEMID)
+    );
+  `);
 }
 
 export const insertToMstUser = async (userCode: string, userId: number, loginPwd: string, userName: string) => {
@@ -250,13 +292,13 @@ export const getMstCust = async () => {
 
 
 
-export const insertMstItem = async (itemId: number, itemName: string, itemCodeClean: string, itemPrice: number) => {
+export const insertMstItem = async (itemId: number, itemName: string, itemCodeClean: string, itemPrice: number,uomid:number) => {
   await initializeDatabase();
   try {
     const db = SQLite.openDatabaseSync('vCracker');
     
     await db.execAsync(`
-      INSERT INTO MstItem (ITEMID, ITEMNAME, ITEMCODEClean, ItemPrice) VALUES (${itemId}, '${itemName}', '${itemCodeClean}', ${itemPrice});
+      INSERT INTO MstItem (ITEMID, ITEMNAME, ITEMCODEClean, ItemPrice,uomid) VALUES (${itemId}, '${itemName}', '${itemCodeClean}', ${itemPrice},${uomid});
     `);
   } catch (error) {
     console.log('====================================');
@@ -336,55 +378,70 @@ export const getMstSalesPerson = async () => {
 
 export const GetSyncData = async () => {
   console.log('Starting data synchronization');
-  
+
   try {
-    await truncateMstCompany();
-    await truncateMstItem();
-    await truncateMstCust();
-    await truncateMstSalesPerson();
-    await truncateMstUser(); // Truncate user table
+    await Promise.all([
+      truncateMstCompany(),
+      truncateMstItem(),
+      truncateMstCust(),
+      truncateMstSalesPerson(),
+      truncateMstUser()
+    ]);
     console.log('Tables truncated successfully');
 
-    // Fetch and insert items
-    const itemsResponse = await axios.get('http://192.168.1.146:3000/api/items');
+    // Fetch data concurrently
+    const [itemsResponse, customersResponse, salesResponse, companyResponse, usersResponse] = await Promise.all([
+      axios.get('http://192.168.1.146:3000/api/items'),
+      axios.get('http://192.168.1.146:3000/api/mstcust'),
+      axios.get('http://192.168.1.146:3000/api/getsp'),
+      axios.get('http://192.168.1.146:3000/api/getcompany'),
+      axios.get('http://192.168.1.146:3000/api/getuser')
+    ]);
+
     const items = itemsResponse.data.data;
-    for (const item of items) {
+    const customers = customersResponse.data.data;
+    const sales = salesResponse.data.data;
+    const companies = companyResponse.data.data;
+    const mstuser = usersResponse.data.data;
+
+    console.log('mstuser:', mstuser); // Debugging
+console.log('====================================');
+console.log('items:', items.length);
+console.log('====================================');
+    // Insert items
+    await Promise.all(items.map(async (item) => {
       try {
-        await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice);
+        await initializeDatabase();
+
+        await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice, item.uomid);
       } catch (error) {
         console.log('Error inserting item:', item, error);
       }
-    }
+    }));
     console.log('Items inserted successfully');
 
-    // Fetch and insert customers
-    const customersResponse = await axios.get('http://192.168.1.146:3000/api/mstcust');
-    const customers = customersResponse.data.data;
-    for (const customer of customers) {
+    // Insert customers
+    await Promise.all(customers.map(async (customer) => {
       try {
         await insertMstCust(customer.CUSTCODE, customer.CustCodeClean, customer.CustName, customer.CUSTID);
       } catch (error) {
         console.log('Error inserting customer:', customer, error);
       }
-    }
+    }));
     console.log('Customers inserted successfully');
 
-    // Fetch and insert salespersons
-    const salesResponse = await axios.get('http://192.168.1.146:3000/api/getsp');
-    const sales = salesResponse.data.data;
-    for (const salesPerson of sales) {
+    // Insert salespersons
+    await Promise.all(sales.map(async (salesPerson) => {
       try {
         await insertMstSalesPerson(salesPerson.SP);
       } catch (error) {
         console.log('Error inserting salesperson:', salesPerson, error);
       }
-    }
+    }));
     console.log('Salespersons inserted successfully');
 
-    // Fetch and insert company data
-    const companyResponse = await axios.get('http://192.168.1.146:3000/api/getcompany');
-    const companies = companyResponse.data.data;
-    for (const company of companies) {
+    // Insert companies
+    await Promise.all(companies.map(async (company) => {
       try {
         await insertToMstCompany(
           company.CompID,
@@ -404,21 +461,17 @@ export const GetSyncData = async () => {
       } catch (error) {
         console.log('Error inserting company:', company, error);
       }
-    }
+    }));
     console.log('Companies inserted successfully');
 
-    // Fetch and insert users
-    const response = await axios.get('http://192.168.1.146:3000/api/getuser');
-    const mstuser = response.data.data;
-    console.log('mstuser:', mstuser); // Debugging
-
-    for (const user of mstuser) {
+    // Insert users
+    await Promise.all(mstuser.map(async (user) => {
       try {
         await insertToMstUser(user.UserCode, user.UserID, user.LoginPwd, user.UserName);
       } catch (error) {
         console.log('Error inserting user:', user, error);
       }
-    }
+    }));
     console.log('Users inserted successfully');
 
     console.log('Data synchronization completed successfully');
@@ -430,3 +483,102 @@ export const GetSyncData = async () => {
   console.log('Data synchronization completed');
 };
 
+
+export const GetMstItemByItemCode = async (itemCode: string) => {
+  try {
+    const db = await SQLite.openDatabaseAsync('vCracker');
+    const query = `SELECT * FROM MstItem WHERE ITEMCODEClean = '${itemCode}'`;
+    const result = await db.getFirstAsync(query);
+    return result;
+  } catch (error) {
+    console.log('====================================');
+    console.log('Error in GetMstItemByItemCode', error);
+    console.log('====================================');
+  }
+}
+
+
+export const getitembyid = async (itemid: number) => {
+  try {
+    const db = await SQLite.openDatabaseAsync('vCracker');
+    const query = `SELECT * FROM MstItem WHERE ITEMID = ${itemid}`;
+    const result = await db.getFirstAsync(query);
+    return result;
+  } catch (error) {
+    console.log('====================================');
+    console.log('Error in getitembyid', error);
+    console.log('====================================');
+  }
+}
+
+
+
+export const insertToTrnHdrINV = async (data: any) => {
+  try {
+    const db = await SQLite.openDatabaseAsync('vCracker');
+    await db.execAsync(`
+      INSERT INTO TrnHdrINV (INVNO, PrintINVNO, INVDate, INVDateYear, INVDateMonth, CUSTID, PartyName, AddedBy, AddedOn, GRSAMT, INVTIME, USERNAME, AMTINWORDS, INVVALUE) 
+      VALUES ('${data.INVNO}', '${data.PrintINVNO}', '${data.INVDate}', ${data.INVDateYear}, ${data.INVDateMonth}, ${data.CUSTID}, '${data.PartyName}', '${data.AddedBy}', '${data.AddedOn}', ${data.GRSAMT}, '${data.INVTIME}', '${data.USERNAME}', '${data.AMTINWORDS}', ${data.INVVALUE});
+    `);
+  } catch (error) {
+    console.log('====================================');
+    console.log('Error in insertToTrnHdrINV', error);
+    console.log('====================================');
+  }
+}
+
+export const getTrnHdrINV = async () => {
+    try {
+        const query = 'SELECT * FROM TrnHdrINV';
+        const db = await SQLite.openDatabaseAsync('vCracker');
+        const result = await db.getAllAsync(query);
+        return result;
+    } catch (error) {
+        console.log('====================================');
+        console.log('Error in getTrnHdrINV', error);
+        console.log('====================================');
+    }
+}
+
+export const truncateTrnhdrINV = async ()=>{
+    try {
+        const db = await SQLite.openDatabaseAsync('vCracker');
+        await db.execAsync(`
+            DELETE FROM TrnHdrINV;
+        `);
+    } catch (error) {
+        console.log('====================================');
+        console.log('Error in truncateTrnhdrINV', error);
+        console.log('====================================');
+    }
+}
+
+
+export const insertToTrnDtlINV = async (data: any) => {
+  try {
+    const db = await SQLite.openDatabaseAsync('vCracker');
+    await db.execAsync(`
+      INSERT INTO TrnDtlINV (INVID, INVDtlID, SlNo, ITEMID, UOMID, ItemSlNO, ShortClosed, ShortClosedBy, ShortClosedDT, ShortClosedQty, StkQty, INVQty, INVRate, INVAmt, ShortClosedRmks) 
+      VALUES (${data.INVID}, ${data.INVDtlID}, ${data.SlNo}, ${data.ITEMID}, ${data.UOMID}, ${data.ItemSlNO}, '${data.ShortClosed}', ${data.ShortClosedBy}, '${data.ShortClosedDT}', ${data.ShortClosedQty}, ${data.StkQty}, ${data.INVQty}, ${data.INVRate}, ${data.INVAmt}, '${data.ShortClosedRmks}');
+    `);
+  } catch (error) {
+    console.log('====================================');
+    console.log('Error in insertToTrnDtlINV', error);
+    console.log('====================================');
+  }
+}
+
+
+
+export const truncateTrnDtlINV = async ()=>{
+    try {
+        const db = await SQLite.openDatabaseAsync('vCracker');
+        await db.execAsync(`
+            DELETE FROM TrnDtlINV;
+        `);
+    } catch (error) {
+        console.log('====================================');
+        console.log('Error in truncateTrnDtlINV', error);
+        console.log('====================================');
+    }
+}

@@ -63,7 +63,7 @@ export default function Login() {
           console.log('====================================');
 
           for (const item of items) {
-            await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice);
+            await insertMstItem(item.ITEMID, item.ITEMNAME, item.ITEMCODEClean, item.ItemPrice,item.uomid);
           }
 
           await AsyncStorage.setItem('isItemsInserted', 'true');

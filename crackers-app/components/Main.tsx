@@ -1,13 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Image, ScrollView, TextInput } from 'react-native';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert, Modal, Image, StyleSheet } from 'react-native';
 import { Provider, Button, Badge } from 'react-native-paper';
-import { Dropdown } from 'react-native-element-dropdown';
-import { MaterialIcons } from '@expo/vector-icons';
-import CartItem from './CartItem'; // Import the CartItem component
-import SummaryTable from './SummaryTable';
+import { MaterialIcons, FontAwesome6 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
-import { getMstCompany, getMstCust, getMstItem, getMstSalesPerson, GetSyncData, truncateMstItem } from '@/db';
+import { Dropdown } from 'react-native-element-dropdown'; // Ensure you are using the correct dropdown component
+import { getMstItem, getMstCust, getMstSalesPerson, GetSyncData } from '@/db'; // Adjust the imports as necessary
+import CartItem from './CartItem';
+import SummaryTable from './SummaryTable';
+// import styles from './styles'; // Ensure you have the correct styles imported
 
 export default function Main() {
   const [visible1, setVisible1] = useState(null);
@@ -17,9 +17,9 @@ export default function Main() {
   const [deviceID, setDeviceID] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [cartModalVisible, setCartModalVisible] = useState(false);
-  const [data, setData] = useState([]); // Move useState hook outside of useEffect
-  const [custData, setCustData] = useState([]); // Move useState hook outside of useEffect
-  const [salesPerson, setSalesPerson] = useState([]); // Move useState hook outside of useEffect
+  const [data, setData] = useState([]);
+  const [custData, setCustData] = useState([]);
+  const [salesPerson, setSalesPerson] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [filteredData, setFilteredData] = useState(data);
   const [mstItemNo, setMstItemNo] = useState();
@@ -29,13 +29,10 @@ export default function Main() {
       const items = await getMstItem();
       setMstItemNo(items.length);
       setData(items);
-      setFilteredData(items); // Initialize filteredData with all items
+      setFilteredData(items);
       const cust = await getMstCust();
       setCustData(cust);
       const sp = await getMstSalesPerson();
-      console.log('====================================');
-      console.log('sp', sp);
-      console.log('====================================');
       setSalesPerson(sp);
     })();
   }, []);
@@ -50,56 +47,15 @@ export default function Main() {
         } else {
           const response = await fetch('http://192.168.1.146:3000/api/getdeviceid');
           const result = await response.json();
-          console.log('====================================');
-          console.log('Device ID:', result, response);
-          console.log('====================================');
           const deviceID = result.data;
           await AsyncStorage.setItem('deviceID', deviceID);
           setDeviceID(deviceID);
           initializeSerialNo(deviceID);
         }
-        getMstCust().then((res) => {
-          console.log('====================================');
-          console.log('res', res?.length, "mstCust from sqlite in the main.tsx");
-          console.log('====================================');
-        }).catch((err) => {
-          console.log('====================================');
-          console.log('err', err);
-          console.log('====================================');
-        });
       } catch (error) {
         Alert.alert('Error', 'Failed to fetch device ID');
       }
     };
-
-    getMstItem().then((res) => {
-      console.log('====================================');
-      console.log('res', res?.length, "mstItem from sqlite in the main.tsx");
-      console.log('====================================');
-    }).catch((err) => {
-      console.log('====================================');
-      console.log('err', err);
-      console.log('====================================');
-    });
-    getMstSalesPerson().then((res) => {
-      console.log('====================================');
-      console.log('res', res?.length, "mstSalesPerson from sqlite in the main.tsx");
-      console.log('====================================');
-    }).catch((err) => {
-      console.log('====================================');
-      console.log('err', err);
-      console.log('====================================');
-    });
-
-    getMstCompany().then((res) => {
-      console.log('====================================');
-      console.log('res', res?.length, "mstCompany from sqlite in the main.tsx");
-      console.log('====================================');
-    }).catch((err) => {
-      console.log('====================================');
-      console.log('err', err);
-      console.log('====================================');
-    });
 
     fetchDeviceID();
   }, []);
@@ -108,11 +64,10 @@ export default function Main() {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const date = new Date();
-    const currentDate = date.getDate().toString().padStart(2, '0'); // Ensure date is in 'dd' format
+    const currentDate = date.getDate().toString().padStart(2, '0');
     const yearLastTwoDigits = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ensure month is in 'MM' format
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
 
-    // Introduce a delay of 2 seconds
     await delay(2000);
 
     if (!deviceID) {
@@ -128,12 +83,10 @@ export default function Main() {
     }
 
     if (storedDate === parseInt(currentDate)) {
-      // Same day, use the stored count
       const currentCount = storedCount.toString().padStart(5, '0');
       const newSerialNo = `${yearLastTwoDigits}${month}${currentDate}${deviceID}${currentCount}`;
       setSerialNo(newSerialNo);
     } else {
-      // New day, reset the count
       const newCount = '00001';
       const newSerialNo = `${yearLastTwoDigits}${month}${currentDate}${deviceID}${newCount}`;
       setSerialNo(newSerialNo);
@@ -143,9 +96,9 @@ export default function Main() {
 
   const updateSerialNo = async () => {
     const date = new Date();
-    const currentDate = date.getDate().toString().padStart(2, '0'); // Ensure date is in 'dd' format
+    const currentDate = date.getDate().toString().padStart(2, '0');
     const yearLastTwoDigits = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Ensure month is in 'MM' format
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const deviceID = await AsyncStorage.getItem('deviceID');
 
     if (!deviceID) {
@@ -161,13 +114,11 @@ export default function Main() {
     }
 
     if (storedDate === parseInt(currentDate)) {
-      // Same day, increment the count
       const currentCount = (storedCount + 1).toString().padStart(5, '0');
       const newSerialNo = `${yearLastTwoDigits}${month}${currentDate}${deviceID}${currentCount}`;
       setSerialNo(newSerialNo);
       await AsyncStorage.setItem('storedData', `${currentDate}-${storedCount + 1}`);
     } else {
-      // New day, reset the count
       const newCount = '00001';
       const newSerialNo = `${yearLastTwoDigits}${month}${currentDate}${deviceID}${newCount}`;
       setSerialNo(newSerialNo);
@@ -190,33 +141,42 @@ export default function Main() {
     }
     setCartItems([]);
     updateSerialNo();
-    // Handle submit logic here
-    console.log('Submit:', cartItems);
+    console.log('====================================');
+    console.log(visible1, visible2);
+    console.log('====================================');
+    console.log('Submit:', cartItems.map(item => ({
+      ITEMID: item.ITEMID,
+      ITEMNAME: item.name,
+      ITEMCODEClean: item.ITEMCODEClean,
+      ItemPrice: item.price,
+      uomid: item.uomid,
+    })));
   };
 
   const handleClear = () => {
     setCartItems([]);
-    setVisible1(null);
-    setVisible2(null);
   };
 
   const handleItemSelect = (value) => {
     const selectedItem = data?.find((item) => item.ITEMCODEClean === value);
     if (!selectedItem) return;
-  
+
     setCartItems((prevCartItems) => {
       const itemMap = new Map(prevCartItems.map(item => [item.name, item]));
       const existingItem = itemMap.get(selectedItem.ITEMNAME);
-  
+
       if (existingItem) {
         existingItem.quantity += 1;
         return [...itemMap.values()];
       } else {
         const newItem = {
-          id: prevCartItems.length + 1 + Math.random(), // Generate a unique id
+          id: prevCartItems.length + 1 + Math.random(),
+          ITEMID: selectedItem.ITEMID,
+          ITEMCODEClean: selectedItem.ITEMCODEClean,
           name: selectedItem.ITEMNAME,
           price: selectedItem.ItemPrice,
           quantity: 1,
+          uomid: selectedItem.uomid,
         };
         itemMap.set(newItem.name, newItem);
         return [...itemMap.values()];
@@ -236,8 +196,6 @@ export default function Main() {
     return `${day}/${month}/${year}`;
   };
 
-
-
   const HandelSearch = (text) => {
     setSearchText(text);
     const filtered = data.filter(
@@ -247,21 +205,14 @@ export default function Main() {
     );
     setFilteredData(filtered);
   };
+
   const memoizedFilteredData = useMemo(() => filteredData, [filteredData]);
 
-  // const CartModal = ({ cartModalVisible, setCartModalVisible, cartItems, handleRemoveItem, handleQuantityChange }) => {
-  //   const total = useMemo(() => {
-  //     return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  //   }, [cartItems]);
-  
-    const memoizedCartItems = useMemo(() => {
-      return cartItems.map((item) => (
-        <CartItem key={item.id} item={item} onRemove={handleRemoveItem} onQuantityChange={handleQuantityChange} />
-      ));
-    }, [cartItems, handleRemoveItem, handleQuantityChange]);
-  
-
-
+  const memoizedCartItems = useMemo(() => {
+    return cartItems.map((item) => (
+      <CartItem key={item.id} item={item} onRemove={handleRemoveItem} onQuantityChange={handleQuantityChange} />
+    ));
+  }, [cartItems, handleRemoveItem, handleQuantityChange]);
 
   const { subtotal, total } = calculateTotal();
 
@@ -274,11 +225,9 @@ export default function Main() {
             <Text style={styles.serialNumberText}>No: {serialNo}</Text>
           </View>
           <Text style={styles.deviceIdText}>Device ID: {deviceID}</Text>
-          <TouchableOpacity style={styles.syncButton} onPress={()=>{
+          <TouchableOpacity style={styles.syncButton} onPress={() => {
             GetSyncData().then((res) => {}).catch((err) => {
-              console.log('====================================');
               console.error('err while syncing in main.tsx', err);
-              console.log('====================================');
             });
           }}>
             <MaterialIcons name="sync" size={20} color="#fff" />
@@ -314,7 +263,7 @@ export default function Main() {
             search
             searchPlaceholder="Search..."
             value={visible2}
-            onChange={(item) => setVisible2(item.ITEMCODEClean)}
+            onChange={(item) => setVisible2(item.SP)}
           />
         </View>
         <View style={styles.dropdownContainer}>
@@ -353,51 +302,59 @@ export default function Main() {
           </Button>
         </View>
         <Modal
-  animationType="slide"
-  transparent={true}
-  visible={modalVisible}
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Select Items({mstItemNo})</Text>
-      <View style={{ width: "100%", paddingHorizontal: 25, flexDirection: 'row', alignItems: 'center' }}>
-        <TextInput
-          placeholder="Search items"
-          style={{ flex: 1, borderColor: '#ccc', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, marginBottom: 10, padding: 5 }}
-          onChangeText={HandelSearch}
-          value={searchText}
-        />
-        <TouchableOpacity onPress={() => setCartModalVisible(true)} style={{ marginLeft: 10 }}>
-          <FontAwesome6 name="cart-shopping" size={24} color="#0d106e" />
-          {cartItems.length > 0 && (
-            <Badge style={styles.badge}>{cartItems.length}</Badge>
-          )}
-        </TouchableOpacity>
-      </View>
-      <ScrollView>
-        <View style={styles.cardContainer}>
-          {memoizedFilteredData.map((item) => (
-            <TouchableOpacity
-              key={item.ITEMID}
-              style={styles.card}
-              onPress={() => handleItemSelect(item.ITEMCODEClean)}
-            >
-              <Image source={require("../assets/images/crackericon.png")} style={styles.cardImage} />
-              <Text style={styles.cardText}>{item.ITEMNAME}</Text>
-              <Text style={[styles.cardPrice, { color: "#fff" }]}>₹{item.ItemPrice}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-<View style={{marginBottom:20}}>
-<TouchableOpacity onPress={() => setModalVisible(false)} style={{ backgroundColor: '#0d106e', paddingVertical:5,paddingHorizontal:20, borderRadius: 5, marginTop: 10 }}>
-    <Text style={{ color: '#fff' }}>Close</Text>
-  </TouchableOpacity>
-</View>
-    </View>
-  </View>
-</Modal>
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Items({mstItemNo})</Text>
+              <View style={{ width: "100%", paddingHorizontal: 25, flexDirection: 'row', alignItems: 'center' }}>
+                <TextInput
+                  placeholder="Search items"
+                  style={{ flex: 1, borderColor: '#ccc', borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, marginBottom: 10, padding: 5 }}
+                  onChangeText={HandelSearch}
+                  value={searchText}
+                />
+                <TouchableOpacity onPress={() => setCartModalVisible(true)} style={{ marginLeft: 10 }}>
+                  <FontAwesome6 name="cart-shopping" size={24} color="#0d106e" />
+                  {cartItems.length > 0 && (
+                    <Badge style={styles.badge}>{cartItems.length}</Badge>
+                  )}
+                </TouchableOpacity>
+              </View>
+              <ScrollView>
+                <View style={styles.cardContainer}>
+                  {memoizedFilteredData.map((item) => (
+                    <TouchableOpacity
+                      key={item?.ITEMID}
+                      style={styles.card}
+                      onPress={() => handleItemSelect(item?.ITEMCODEClean)}
+                    >
+                      <Image source={require("../assets/images/crackericon.png")} style={styles.cardImage} />
+                      <Text style={styles.cardText}>{item.ITEMNAME}</Text>
+                      <Text style={[styles.cardPrice, { color: "#fff" }]}>₹{item.ItemPrice}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+              <View style={{ marginBottom: 20 }}>
+                <TouchableOpacity onPress={() => setModalVisible(false)} style={{ backgroundColor: '#0d106e', paddingVertical: 5, paddingHorizontal: 20, borderRadius: 5, marginTop: 10 }}>
+                  <Text style={{ color: '#fff', textAlign: "center" }}>Close</Text>
+                </TouchableOpacity>
+                <View style={styles.buttonContainer}>
+                  <Button mode="contained" buttonColor="#0d106e" textColor="white" onPress={handleSubmit} style={styles.button}>
+                    Save/Print
+                  </Button>
+                  <Button mode="outlined" textColor="#0d106e" onPress={handleClear} style={styles.button}>
+                    Clear
+                  </Button>
+                </View>
+              </View>
+            </View>
+          </View>
+        </Modal>
         <Modal
           animationType="slide"
           transparent={true}
@@ -408,16 +365,14 @@ export default function Main() {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Cart Items</Text>
               <ScrollView style={styles.cartContainer}>
-                {cartItems.map((item) => (
-                  <CartItem key={item.id} item={item} onRemove={handleRemoveItem} onQuantityChange={handleQuantityChange} />
-                ))}
+                {memoizedCartItems}
               </ScrollView>
               <Text style={styles.modalTitle}>Total: ₹{total.toFixed(2)}</Text>
-            <View style={{marginBottom:20}}>
-<TouchableOpacity onPress={() => setCartModalVisible(false)} style={{ backgroundColor: '#0d106e', paddingVertical:5,paddingHorizontal:20, borderRadius: 5, marginTop: 10 }}>
-    <Text style={{ color: '#fff' }}>Close</Text>
-  </TouchableOpacity>
-</View>
+              <View style={{ marginBottom: 20 }}>
+                <TouchableOpacity onPress={() => setCartModalVisible(false)} style={{ backgroundColor: '#0d106e', paddingVertical: 5, paddingHorizontal: 20, borderRadius: 5, marginTop: 10 }}>
+                  <Text style={{ color: '#fff' }}>Close</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>

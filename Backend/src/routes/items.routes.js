@@ -42,37 +42,28 @@ router.post("/sync", async (req, res) => {
 
     for (const cart of cartItems) {
       try {
-        // Example query to test the connection
-        // const dataTest = await executeQuery("SELECT * FROM mstitem");
-        // console.log(dataTest);
-
         // Insert into TrnHdrINV
         const insertHdrQuery = `
           INSERT INTO TrnHdrINV (
-            INVNO, Prefix, PrintINVNO, INVDate, INVDateYear, INVDateMonth, CUSTID, PartyName, PartyAdd1, PartyAdd2, PartyAdd3, PartyAdd4, PartyCity, PartyState, PartyPinCode, PartyCountry, PartyCName, PartyCMob, PartyCEmail, PartyCDesig, Authorised, AuthBy, AuthOn, LOCID, ChangedBy, ChangedOn, Cancelled, AddedBy, AddedOn, PartyGSTNO, PartySGSTNO, CRPERIOD, GRSAMT, INVTIME, USERNAME, CGSTPER, CGSTAMT, SGSTPER, SGSTAMT, IGSTPER, IGSTAMT, AMTINWORDS, BTOTAMT, QDISCPER, QDISCAMT, SUBTOTAMT, VATPER, VATAMT, ADVAMT, PCKCHGAMT, OTHAMT, INVVALUE, REF, CASES, BUNDLRPKTS, REMARKS, SP, CASHAMT, CARDAMT, PAYTMAMT, PAYTMNO, ONLINEAMT, ONLINEAMTDET
+            INVNO, Prefix, PrintINVNO, INVDate, CUSTID, 
+            Authorised, AuthBy, AuthOn, LOCID, ChangedBy, ChangedOn, Cancelled, 
+            AddedBy, AddedOn, CRPERIOD, GRSAMT, INVTIME, USERNAME, 
+            CGSTPER, CGSTAMT, SGSTPER, SGSTAMT, IGSTPER, IGSTAMT, 
+            BTOTAMT, QDISCPER, QDISCAMT, SUBTOTAMT, VATPER, VATAMT, 
+            ADVAMT, PCKCHGAMT, OTHAMT, INVVALUE, REF, CASES, BUNDLRPKTS, 
+            REMARKS, SP, CASHAMT, CARDAMT, PAYTMAMT, PAYTMNO, ONLINEAMT, ONLINEAMTDET
           ) VALUES (
-            @SerialNo, ' ', '12345', @CartDate, @CartYear, @CartMonth, @CUSTID, 'PartyName', 'PartyAdd1', 'PartyAdd2', 'PartyAdd3', 'PartyAdd4', 'PartyCity', 'PartyState', 'PartyPinCode', 'PartyCountry', 'PartyCName', 'PartyCMob', 'PartyCEmail', 'PartyCDesig', 'Y', '1', GETDATE(), 1, 'ChangedBy', GETDATE(), 'N', 'AddedBy', GETDATE(), 'PartyGSTNO', 'PartySGSTNO', 30, @CartTotal, 'INVTIME', 'USERNAME', 5, 10, 5, 10, 5, 10, 'AMTINWORDS', @CartTotal, 5, 10, @CartTotal, 5, 10, 0, 0, 0, 0, @CartTotalFixed, ' ', 0, 0, ' ', @SalesPerson, 0, 0, 0, ' ', 0, ' '
+            '${cart.SerialNo}', ' ', '12345', '${new Date(cart.CartDate).toISOString()}', ${cart.CUSTID},
+            'Y', '1', GETDATE(), 1, 'ChangedBy', GETDATE(), 'N',
+            'AddedBy', GETDATE(), 30, ${cart.CartTotal}, 'INVTIME', 'USERNAME',
+            5, 10, 5, 10, 5, 10,
+            ${cart.CartTotal}, 5, 10, ${cart.CartTotal}, 5, 10,
+            0, 0, 0, ${parseFloat(cart.CartTotal).toFixed(2)}, ' ', 0, 0,
+            ' ', '${cart.SalesPerson}', 0, 0, 0, ' ', 0, ' '
           );
         `;
 
-        await executeQuery(insertHdrQuery, [
-          { name: "SerialNo", type: TYPES.Int, value: cart.SerialNo },
-          {
-            name: "CartDate",
-            type: TYPES.DateTime,
-            value: new Date(cart.CartDate),
-          },
-          { name: "CartYear", type: TYPES.Int, value: cart.CartYear },
-          { name: "CartMonth", type: TYPES.Int, value: cart.CartMonth },
-          { name: "CUSTID", type: TYPES.Int, value: cart.CUSTID },
-          { name: "CartTotal", type: TYPES.Decimal, value: cart.CartTotal },
-          {
-            name: "CartTotalFixed",
-            type: TYPES.Decimal,
-            value: cart.CartTotal.toFixed(2),
-          },
-          { name: "SalesPerson", type: TYPES.VarChar, value: cart.SalesPerson },
-        ]);
+        await executeQuery(insertHdrQuery);
 
         // Retrieve the latest INVID
         const latestInvidQuery = "SELECT MAX(INVID) as INVID FROM TrnHdrINV";
@@ -88,26 +79,14 @@ router.post("/sync", async (req, res) => {
           const item = cartItemsArray[i];
           const insertDtlQuery = `
             INSERT INTO TrndtlINV (
-              INVID, INVDtlID, SlNo, ITEMID, UOMID, ItemSlNO, ShortClosed, ShortClosedBy, ShortClosedDT, ShortClosedQty, StkQty, INVQty, INVRate, INVAmt, ShortClosedRmks
+              INVID, SlNo, ITEMID, UOMID, ItemSlNO, ShortClosed, 
+              INVQty, INVRate, INVAmt
             ) VALUES (
-              @INVID, @INVDtlID, @SlNo, @ITEMID, @UOMID, @ItemSlNO, 'N', NULL, NULL, NULL, NULL, @INVQty, @INVRate, @INVAmt, NULL
+              ${latestInvid}, ${i + 1}, ${item.ITEMID}, ${item.uomid}, ${i + 1}, 'N',
+              ${item.quantity}, ${item.ItemPrice}, ${item.quantity * item.ItemPrice}
             );
           `;
-          await executeQuery(insertDtlQuery, [
-            { name: "INVID", type: TYPES.Int, value: latestInvid },
-            { name: "INVDtlID", type: TYPES.Int, value: i + 1 },
-            { name: "SlNo", type: TYPES.Int, value: i + 1 },
-            { name: "ITEMID", type: TYPES.Int, value: item.ITEMID },
-            { name: "UOMID", type: TYPES.Int, value: item.uomid },
-            { name: "ItemSlNO", type: TYPES.Int, value: i + 1 },
-            { name: "INVQty", type: TYPES.Decimal, value: item.quantity },
-            { name: "INVRate", type: TYPES.Decimal, value: item.ItemPrice },
-            {
-              name: "INVAmt",
-              type: TYPES.Decimal,
-              value: item.quantity * item.ItemPrice,
-            },
-          ]);
+          await executeQuery(insertDtlQuery);
         }
       } catch (err) {
         console.error("Error processing cart item:", err);
@@ -121,6 +100,128 @@ router.post("/sync", async (req, res) => {
   } catch (err) {
     console.error("Error in /sync route", err);
     res.status(500).json({ message: "Error syncing data", error: err.message });
+  }
+});
+
+
+router.get("/getall", async (req, res) => {
+  try {
+    // Get the data from the TrnHdrINV ordered by INVNO in descending order
+    const items = await executeQuery(`
+      SELECT 
+        INVNO,
+        INVDate,
+        CUSTID,
+        GRSAMT,
+        INVVALUE,
+        SP,
+        CASHAMT,
+        CARDAMT,
+        PAYTMAMT,
+        ONLINEAMT,
+        ONLINEAMTDET
+      FROM TrnHdrINV 
+      ORDER BY INVNO DESC
+    `);
+
+    if (!items) {
+      return res.status(404).json({ message: "No items found" });
+    }
+
+    res.status(200).json({ length: items.length, data: items });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+    console.log("====================================");
+    console.log(error, "error in items.routes.js getall");
+    console.log("====================================");
+  }
+});
+
+
+router.get("/gettrndtl", async (req, res) => {
+  try {
+    const items = await executeQuery(`
+      SELECT TOP 50
+        SlNo,
+        ITEMID,
+        UOMID,
+        ItemSlNO,
+        ShortClosed,
+        INVQty,
+        INVRate,
+        INVAmt
+      FROM TrndtlINV 
+      ORDER BY SlNo DESC
+    `);
+
+    if (!items) {
+      return res.status(404).json({ message: "No items found" });
+    }
+
+    res.status(200).json({ length: items.length, data: items });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+    console.log("====================================");
+    console.log(error, "error in items.routes.js gettrndtl");
+    console.log("====================================");
+  }
+});
+
+
+// get the details of the tables of trnhdrinv and trndtlinv
+router.get("/getdetails", async (req, res) => {
+  try {
+    // Get metadata for TrnHdrINV
+    const hdrMetadata = await executeQuery(`
+      SELECT 
+        COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_NAME = 'TrnHdrINV'
+    `);
+
+    // Get metadata for TrndtlINV
+    const dtlMetadata = await executeQuery(`
+      SELECT 
+        COLUMN_NAME, DATA_TYPE, IS_NULLABLE, CHARACTER_MAXIMUM_LENGTH
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_NAME = 'TrndtlINV'
+    `);
+
+    // Get data from TrnHdrINV
+    const items = await executeQuery(`
+      SELECT 
+        *
+      FROM TrnHdrINV 
+      ORDER BY INVNO DESC
+    `);
+
+    if (!items) {
+      return res.status(404).json({ message: "No items found" });
+    }
+
+    // Get data from TrndtlINV
+    const items2 = await executeQuery(`
+      SELECT 
+        *
+      FROM TrndtlINV 
+      ORDER BY SlNo DESC
+    `);
+
+    if (!items2) {
+      return res.status(404).json({ message: "No items found" });
+    }
+
+    res.status(200).json({ 
+      hdrMetadata, 
+      dtlMetadata, 
+      hdrData: { length: items.length, data: items }, 
+      dtlData: { length: items2.length, data: items2 } 
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+    console.log("====================================");
+    console.log(error, "error in items.routes.js getdetails");
+    console.log("====================================");
   }
 });
 

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SQLite from 'expo-sqlite';
+import { Alert } from 'react-native';
 
 async function initializeDatabase() {
   const db = await SQLite.openDatabaseAsync('vCracker');
@@ -412,8 +413,10 @@ export const syncCustomerSalesCart = async () => {
     console.log('Query result:', result);
 
     const response = await axios.post('https://vcracker.onrender.com/api/items/sync', result);
-    console.log('Data synced successfully with server. Response:', response.data);
+    Alert.alert("Sync",'Data synced successfully with server');
+    console.log('Data synced successfully with server. Response:', response.status);
   } catch (error) {
+    Alert.alert("Sync",'Error syncing data with server');
     console.log('====================================');
     console.log('Error in syncCustomerSalesCart', error);
     console.log('====================================');

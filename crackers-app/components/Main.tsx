@@ -36,6 +36,7 @@ export default function Main() {
   const [searchText, setSearchText] = useState('');
   const [filteredData, setFilteredData] = useState(data);
   const [mstItemNo, setMstItemNo] = useState();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -151,6 +152,7 @@ export default function Main() {
 
 
   const handleSubmit = async () => {
+    setLoading(true);
     if (cartItems.length === 0) {
       Alert.alert('Cart is empty', 'Please add items to the cart before submitting.');
       return;
@@ -165,7 +167,7 @@ export default function Main() {
     }
 
     setCartItems([]);
-    updateSerialNo();
+
     console.log('====================================');
     console.log(visible1, visible2, total);
     console.log('====================================');
@@ -184,12 +186,18 @@ const mounth = new Date().getMonth() + 1;
 const year = new Date().getFullYear();
    try {
   await  insertToCustomerSalesCart(visible1,visible2 || "Admin",strCart,total,date,mounth,year,serialNo)
+  updateSerialNo();
+  Alert.alert('Success', 'Inserted to cart successfully');
    } catch (error) {
+    setLoading(false);
+    Alert.alert('Error', 'Failed to insert to cart');
     console.log('====================================');
     console.log('error while inserting to customer sales cart',error);
     console.log('====================================');
    }
-   await getCustomerSalesCart();
+   setLoading(false);
+   console.log('====================================');
+   
   };
 
   const handleClear = () => {
@@ -261,7 +269,9 @@ const year = new Date().getFullYear();
   }, [cartItems, handleRemoveItem, handleQuantityChange]);
 
   const { subtotal, total } = calculateTotal();
-
+if(loading){
+  return <View style={{flex:1,justifyContent:'center',alignItems:'center'}}><Text>Loading...</Text></View>
+}
   return (
     <Provider>
       <View style={styles.container}>

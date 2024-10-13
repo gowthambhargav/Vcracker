@@ -15,9 +15,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
+    setLoading(true);
     (async () => {
       try {
         const isDataInserted = await AsyncStorage.getItem('isDataInserted');
@@ -45,7 +47,9 @@ export default function Login() {
           setPassword(savedPassword || '');
           setRememberMe(true);
         }
+        
       } catch (error) {
+        setLoading(false);
         console.log('Error fetching users', error);
         await AsyncStorage.setItem('isDataInserted', 'false');
       }
@@ -92,6 +96,7 @@ export default function Login() {
           await AsyncStorage.setItem('isCustomersInserted', 'true');
         }
       } catch (error) {
+        setLoading(false);
         console.log('Error fetching customers', error);
         await AsyncStorage.setItem('isCustomersInserted', 'false');
       }
@@ -112,6 +117,7 @@ export default function Login() {
           await AsyncStorage.setItem('isSalesInserted', 'true');
         }
       } catch (error) {
+        setLoading(false);
         await AsyncStorage.setItem('isSalesInserted', 'false');
         console.log('====================================');
         console.log('Error in insertMstItem', error);
@@ -150,15 +156,18 @@ export default function Login() {
           await AsyncStorage.setItem('isCompanyInserted', 'true');
         }
       } catch (error) {
+        setLoading(false);
         await AsyncStorage.setItem('isCompanyInserted', 'false');
         console.log('====================================');
         console.log('Error in insertToMstCompany', error);
         console.log('====================================');
       }
     })();
+    setLoading(false);
   }, []);
 
   const handleLogin = async () => {
+    setLoading(true);
     if (!username) {
       alert('Please enter username');
       return;
@@ -190,6 +199,7 @@ console.log('====================================');
         await AsyncStorage.removeItem('password');
         await AsyncStorage.setItem('rememberMe', 'false');
       }
+      setLoading(false);
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
@@ -198,6 +208,14 @@ console.log('====================================');
       );
     }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -42,6 +42,11 @@ router.post("/sync", async (req, res) => {
 
     for (const cart of cartItems) {
       try {
+        // Ensure SerialNo is defined and unique
+        if (!cart.SerialNo) {
+          throw new Error('SerialNo is undefined');
+        }
+
         // Insert into TrnHdrINV
         const insertHdrQuery = `
           INSERT INTO TrnHdrINV (
@@ -63,6 +68,7 @@ router.post("/sync", async (req, res) => {
           );
         `;
 
+        console.log(`Executing insertHdrQuery: ${insertHdrQuery}`);
         await executeQuery(insertHdrQuery);
 
         // Retrieve the latest INVID
@@ -77,8 +83,8 @@ router.post("/sync", async (req, res) => {
         const cartItemsArray = JSON.parse(cart.CartItems);
         for (let i = 0; i < cartItemsArray.length; i++) {
           const item = cartItemsArray[i];
-          console.log(item,"item");
-          
+          console.log(item, "item");
+
           const insertDtlQuery = `
             INSERT INTO TrndtlINV (
               INVID, SlNo, ITEMID, UOMID, ItemSlNO, ShortClosed, 
@@ -88,6 +94,7 @@ router.post("/sync", async (req, res) => {
               ${item.quantity}, ${item.quantity}, ${item.ItemPrice}, ${item.quantity * item.ItemPrice}
             );
           `;
+          console.log(`Executing insertDtlQuery: ${insertDtlQuery}`);
           await executeQuery(insertDtlQuery);
         }
 

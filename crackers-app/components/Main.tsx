@@ -58,7 +58,7 @@ export default function Main() {
           setDeviceID(storedDeviceID);
           initializeSerialNo(storedDeviceID);
         } else {
-          const response = await fetch('http://192.168.1.146:3000/api/getdeviceid');
+          const response = await fetch('https://vcracker.onrender.com/api/getdeviceid');
           const result = await response.json();
           const deviceID = result.data;
           await AsyncStorage.setItem('deviceID', deviceID);
@@ -153,6 +153,14 @@ export default function Main() {
   const handleSubmit = async () => {
     if (cartItems.length === 0) {
       Alert.alert('Cart is empty', 'Please add items to the cart before submitting.');
+      return;
+    }
+    if(!visible1){
+      Alert.alert('Select Customer', 'Please select customer before submitting.');
+      return;
+    }
+    if(!visible2){
+      Alert.alert('Select Sales Person', 'Please select sales person before submitting.');
       return;
     }
 

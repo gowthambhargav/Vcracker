@@ -411,7 +411,7 @@ export const syncCustomerSalesCart = async () => {
     const result = await db.getAllAsync(query);
     console.log('Query result:', result);
 
-    const response = await axios.post('http://192.168.1.146:3000/api/items/sync', result);
+    const response = await axios.post('https://vcracker.onrender.com/api/items/sync', result);
     console.log('Data synced successfully with server. Response:', response.data);
   } catch (error) {
     console.log('====================================');
@@ -434,11 +434,11 @@ export const GetSyncData = async () => {
 
     // Fetch data concurrently
     const [itemsResponse, customersResponse, salesResponse, companyResponse, usersResponse] = await Promise.all([
-      axios.get('http://192.168.1.146:3000/api/items'),
-      axios.get('http://192.168.1.146:3000/api/mstcust'),
-      axios.get('http://192.168.1.146:3000/api/getsp'),
-      axios.get('http://192.168.1.146:3000/api/getcompany'),
-      axios.get('http://192.168.1.146:3000/api/getuser')
+      axios.get('https://vcracker.onrender.com/api/items'),
+      axios.get('https://vcracker.onrender.com/api/mstcust'),
+      axios.get('https://vcracker.onrender.com/api/getsp'),
+      axios.get('https://vcracker.onrender.com/api/getcompany'),
+      axios.get('https://vcracker.onrender.com/api/getuser')
     ]);
 
     const items = itemsResponse.data.data;
@@ -566,16 +566,19 @@ export const insertToCustomerSalesCart = async (custId: number, salesPerson: str
 
     console.log('Opening database...');
     const db = await SQLite.openDatabaseAsync('vCracker');
+    if (!db) {
+      throw new Error('Failed to open database');
+    }
 
     console.log('Preparing SQL query...');
     const query = `
-    INSERT INTO CustomerSalesCart (CUSTID, SalesPerson, CartItems, CartTotal, CartDate, CartMonth, CartYear, SeraialNo) 
-    VALUES (${custId}, '${salesPerson}', '${cartItems}', ${cartTotal}, '${cartDate}', ${cartMonth}, ${cartYear}, ${serialNo});
-  `;
-  console.log(`SQL query: ${query}`);
-  
-  console.log('Executing SQL query...');
-  await db.execAsync(query);
+      INSERT INTO CustomerSalesCart (CUSTID, SalesPerson, CartItems, CartTotal, CartDate, CartMonth, CartYear, SeraialNo) 
+      VALUES (${custId || 2}, '${salesPerson}', '${cartItems}', ${cartTotal}, '${cartDate}', ${cartMonth}, ${cartYear}, ${serialNo});
+    `;
+    console.log(`SQL query: ${query}`);
+
+    console.log('Executing SQL query...');
+    await db.execAsync(query);
 
     console.log('Insert successful.');
   } catch (error) {

@@ -70,24 +70,40 @@ router.post("/sync", async (req, res) => {
         const latestInvidResult = await executeQuery(latestInvidQuery);
         const latestInvid = latestInvidResult[0].INVID;
         console.log("====================================");
-        console.log(latestInvid);
+        console.log(latestInvid, "latestInvid");
         console.log("====================================");
 
         // Insert into TrndtlINV
         const cartItemsArray = JSON.parse(cart.CartItems);
         for (let i = 0; i < cartItemsArray.length; i++) {
           const item = cartItemsArray[i];
+          console.log(item,"item");
+          
           const insertDtlQuery = `
             INSERT INTO TrndtlINV (
               INVID, SlNo, ITEMID, UOMID, ItemSlNO, ShortClosed, 
-              INVQty, INVRate, INVAmt
+              StkQty, INVQty, INVRate, INVAmt
             ) VALUES (
               ${latestInvid}, ${i + 1}, ${item.ITEMID}, ${item.uomid}, ${i + 1}, 'N',
-              ${item.quantity}, ${item.ItemPrice}, ${item.quantity * item.ItemPrice}
+              ${item.quantity}, ${item.quantity}, ${item.ItemPrice}, ${item.quantity * item.ItemPrice}
             );
           `;
           await executeQuery(insertDtlQuery);
         }
+
+        // Verify the insertion
+        const verifyQuery = `
+          SELECT COUNT(*) as count
+          FROM TrndtlINV
+          WHERE INVID = ${latestInvid}
+        `;
+        const verifyResult = await executeQuery(verifyQuery);
+        const insertedCount = verifyResult[0].count;
+
+        if (insertedCount !== cartItemsArray.length) {
+          throw new Error(`Verification failed: Expected ${cartItemsArray.length} records, but found ${insertedCount}`);
+        }
+
       } catch (err) {
         console.error("Error processing cart item:", err);
         return res
@@ -102,7 +118,6 @@ router.post("/sync", async (req, res) => {
     res.status(500).json({ message: "Error syncing data", error: err.message });
   }
 });
-
 
 router.get("/getall", async (req, res) => {
   try {
@@ -137,21 +152,13 @@ router.get("/getall", async (req, res) => {
   }
 });
 
-
 router.get("/gettrndtl", async (req, res) => {
   try {
     const items = await executeQuery(`
       SELECT TOP 50
-        SlNo,
-        ITEMID,
-        UOMID,
-        ItemSlNO,
-        ShortClosed,
-        INVQty,
-        INVRate,
-        INVAmt
-      FROM TrndtlINV 
-      ORDER BY SlNo DESC
+        *
+      FROM TrnHdrINV 
+      ORDER BY INVID DESC
     `);
 
     if (!items) {
@@ -166,7 +173,6 @@ router.get("/gettrndtl", async (req, res) => {
     console.log("====================================");
   }
 });
-
 
 // get the details of the tables of trnhdrinv and trndtlinv
 router.get("/getdetails", async (req, res) => {
@@ -211,11 +217,11 @@ router.get("/getdetails", async (req, res) => {
       return res.status(404).json({ message: "No items found" });
     }
 
-    res.status(200).json({ 
-      hdrMetadata, 
-      dtlMetadata, 
-      hdrData: { length: items.length, data: items }, 
-      dtlData: { length: items2.length, data: items2 } 
+    res.status(200).json({
+      hdrMetadata,
+      dtlMetadata,
+      hdrData: { length: items.length, data: items },
+      dtlData: { length: items2.length, data: items2 },
     });
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error });
@@ -224,5 +230,31 @@ router.get("/getdetails", async (req, res) => {
     console.log("====================================");
   }
 });
+
+router.get("/getdtl", async (req, res) => {
+  try {
+    const items = await executeQuery(`
+      SELECT TOP 50
+        *
+      FROM TrndtlINV 
+      ORDER BY SlNo DESC
+    `);
+
+    if (!items) {
+      return res.status(404).json({ message: "No items found" });
+    }
+
+    res.status(200).json({ length: items.length, data: items });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+    console.log("====================================");
+    console.log(error, "error in items.routes.js getdtl");
+    console.log("====================================");
+  }
+});
+
+
+
+
 
 export default router;

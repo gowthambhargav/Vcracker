@@ -24,7 +24,7 @@ export default function Login() {
         console.log('isDataInserted:', isDataInserted); // Debugging
 
         if (isDataInserted !== 'true') {
-          const response = await axios.get('http://192.168.1.146:3000/api/getuser');
+          const response = await axios.get('https://vcracker.onrender.com/api/getuser');
           const mstuser = response.data.data;
           console.log('mstuser:', mstuser); // Debugging
 
@@ -56,7 +56,7 @@ export default function Login() {
         console.log('isItemsInserted:', isItemsInserted); // Debugging
 
         if (isItemsInserted !== 'true') {
-          const response = await axios.get('http://192.168.1.146:3000/api/items');
+          const response = await axios.get('https://vcracker.onrender.com/api/items');
           const items = response.data.data;
           console.log('====================================');
           console.log('items:', items.length); // Debugging
@@ -79,7 +79,7 @@ export default function Login() {
         console.log('isCustomersInserted:', isCustomersInserted); // Debugging
 
         if (isCustomersInserted !== 'true') {
-          const response = await axios.get('http://192.168.1.146:3000/api/mstcust');
+          const response = await axios.get('https://vcracker.onrender.com/api/mstcust');
           const customers = response.data.data;
           console.log('====================================');
           console.log('customers:', customers.length); // Debugging
@@ -101,7 +101,7 @@ export default function Login() {
         console.log('isSalesInserted:', isSalesInserted); // Debugging
 
         if (isSalesInserted !== 'true') {
-          const response = await axios.get('http://192.168.1.146:3000/api/getsp');
+          const response = await axios.get('https://vcracker.onrender.com/api/getsp');
           const sales = response.data.data;
           console.log('====================================');
           console.log('sales:', sales, sales.length); // Debugging
@@ -125,7 +125,7 @@ export default function Login() {
         console.log("inserting");
         console.log('====================================');
         if (isCompanyInserted !== 'true') {
-          const response = await axios.get('http://192.168.1.146:3000/api/getcompany');
+          const response = await axios.get('https://vcracker.onrender.com/api/getcompany');
           const company = response.data.data;
           console.log('====================================');
           console.log('company:', company, company.length); // Debugging

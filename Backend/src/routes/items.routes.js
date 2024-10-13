@@ -42,11 +42,6 @@ router.post("/sync", async (req, res) => {
 
     for (const cart of cartItems) {
       try {
-        // Ensure SerialNo is defined and unique
-        if (!cart.SerialNo) {
-          throw new Error('SerialNo is undefined');
-        }
-
         // Insert into TrnHdrINV
         const insertHdrQuery = `
           INSERT INTO TrnHdrINV (
@@ -58,17 +53,16 @@ router.post("/sync", async (req, res) => {
             ADVAMT, PCKCHGAMT, OTHAMT, INVVALUE, REF, CASES, BUNDLRPKTS, 
             REMARKS, SP, CASHAMT, CARDAMT, PAYTMAMT, PAYTMNO, ONLINEAMT, ONLINEAMTDET
           ) VALUES (
-            '${cart.SerialNo}', ' ', '12345', '${cart.CartDate}', ${cart.CUSTID},
+            '${cart.SerialNo}', ' ', '12345', '${cart.cartDate}', ${cart.custId},
             'Y', '1', GETDATE(), 1, 'ChangedBy', GETDATE(), 'N',
-            'AddedBy', GETDATE(), 30, ${cart.CartTotal}, 'INVTIME', 'USERNAME',
+            'AddedBy', GETDATE(), 30, ${cart.cartTotal}, 'INVTIME', 'USERNAME',
             5, 10, 5, 10, 5, 10,
-            ${cart.CartTotal}, 5, 10, ${cart.CartTotal}, 5, 10,
-            0, 0, 0, ${parseFloat(cart.CartTotal).toFixed(2)}, ' ', 0, 0,
-            ' ', '${cart.SalesPerson}', 0, 0, 0, ' ', 0, ' '
+            ${cart.cartTotal}, 5, 10, ${cart.cartTotal}, 5, 10,
+            0, 0, 0, ${parseFloat(cart.cartTotal).toFixed(2)}, ' ', 0, 0,
+            ' ', '${cart.salesPerson}', 0, 0, 0, ' ', 0, ' '
           );
         `;
 
-        console.log(`Executing insertHdrQuery: ${insertHdrQuery}`);
         await executeQuery(insertHdrQuery);
 
         // Retrieve the latest INVID
@@ -83,8 +77,8 @@ router.post("/sync", async (req, res) => {
         const cartItemsArray = JSON.parse(cart.CartItems);
         for (let i = 0; i < cartItemsArray.length; i++) {
           const item = cartItemsArray[i];
-          console.log(item, "item");
-
+          console.log(item,"item");
+          
           const insertDtlQuery = `
             INSERT INTO TrndtlINV (
               INVID, SlNo, ITEMID, UOMID, ItemSlNO, ShortClosed, 
@@ -94,7 +88,6 @@ router.post("/sync", async (req, res) => {
               ${item.quantity}, ${item.quantity}, ${item.ItemPrice}, ${item.quantity * item.ItemPrice}
             );
           `;
-          console.log(`Executing insertDtlQuery: ${insertDtlQuery}`);
           await executeQuery(insertDtlQuery);
         }
 

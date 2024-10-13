@@ -411,8 +411,18 @@ export const syncCustomerSalesCart = async () => {
     console.log(`Executing query: ${query}`);
     const result = await db.getAllAsync(query);
     console.log('Query result:', result);
+    const data = result.map((item) => ({
+      custId: item.CUSTID,
+      salesPerson: item.SalesPerson,
+      cartItems: item.CartItems,
+      cartTotal: item.CartTotal,
+      cartDate: item.CartDate,
+      cartMonth: item.CartMonth,
+      cartYear: item.CartYear,
+      SerialNo: item.SeraialNo
+    }));
 
-    const response = await axios.post('https://vcracker.onrender.com/api/items/sync', result);
+    const response = await axios.post('https://vcracker.onrender.com/api/items/sync', data);
     Alert.alert("Sync",'Data synced successfully with server');
     console.log('Data synced successfully with server. Response:', response.status);
   } catch (error) {

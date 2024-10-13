@@ -58,7 +58,7 @@ router.post("/sync", async (req, res) => {
             ADVAMT, PCKCHGAMT, OTHAMT, INVVALUE, REF, CASES, BUNDLRPKTS, 
             REMARKS, SP, CASHAMT, CARDAMT, PAYTMAMT, PAYTMNO, ONLINEAMT, ONLINEAMTDET
           ) VALUES (
-            '${cart.SerialNo}', ' ', '12345', '${new Date(cart.CartDate).toISOString()}', ${cart.CUSTID},
+            '${cart.SerialNo}', ' ', '12345', '${cart.CartDate}', ${cart.CUSTID},
             'Y', '1', GETDATE(), 1, 'ChangedBy', GETDATE(), 'N',
             'AddedBy', GETDATE(), 30, ${cart.CartTotal}, 'INVTIME', 'USERNAME',
             5, 10, 5, 10, 5, 10,
